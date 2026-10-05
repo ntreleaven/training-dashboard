@@ -1,0 +1,1759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cross Country Training Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:#F7F5FB;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+a{color:#4B2E83;text-decoration:none}
+a:hover{color:#3A2266}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,select{font-family:inherit}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:#D6CCE8;border-radius:8px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes overlayIn{from{opacity:0}to{opacity:1}}
+@keyframes sheetIn{from{opacity:0;transform:translateY(18px) scale(.98)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="vendor/react.production.min.js"></script>
+<script src="vendor/react-dom.production.min.js"></script>
+<script src="vendor/babel.min.js"></script>
+
+<script type="text/plain" id="app-source">
+const STORAGE_KEY = 'xc-training-dashboard-v1';
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const PROGRAM_START_ISO = '2026-09-07';
+const PLAN_VERSION = 'xc-fall-2026-w1-6';
+const WEEK_TEMPLATE = [
+  { day:'Mon', type:'Easy', km:13, strides:true, core:false, strength:'A' },
+  { day:'Tue', type:'Easy', km:11, strides:true, core:true,  strength:null },
+  { day:'Wed', type:'Easy', km:12, strides:true, core:false, strength:'B' },
+  { day:'Thu', type:'Easy', km:11, strides:true, core:true,  strength:null },
+  { day:'Fri', type:'Rest', km:0,  strides:false, core:false, strength:'C' },
+  { day:'Sat', type:'Easy', km:11, strides:true, core:false, strength:null },
+  { day:'Sun', type:'Long', km:15, strides:true, core:true,  strength:null },
+];
+
+const WEEKLY_TEMPLATES = {
+  1: [
+    { day:'Mon', type:'Workout', km:13, strides:true,  core:false, strength:'A' },
+    { day:'Tue', type:'Easy',    km:12, strides:true,  core:false, strength:null },
+    { day:'Wed', type:'Workout', km:13, strides:true,  core:false, strength:'B' },
+    { day:'Thu', type:'Easy',    km:6,  strides:true,  core:false, strength:null },
+    { day:'Fri', type:'Workout', km:6,  strides:false, core:false, strength:null },
+    { day:'Sat', type:'Easy',    km:10, strides:true,  core:true,  strength:null },
+    { day:'Sun', type:'Easy',    km:12, strides:true,  core:false, strength:null },
+  ],
+  2: [
+    { day:'Mon', type:'Workout', km:13, strides:true,  core:false, strength:'A' },
+    { day:'Tue', type:'Easy',    km:12, strides:true,  core:false, strength:null },
+    { day:'Wed', type:'Workout', km:13, strides:true,  core:false, strength:'B' },
+    { day:'Thu', type:'Rest',    km:0,  strides:false, core:false, strength:null },
+    { day:'Fri', type:'Easy',    km:11, strides:true,  core:true,  strength:null },
+    { day:'Sat', type:'Long',    km:16, strides:true,  core:false, strength:null },
+    { day:'Sun', type:'Easy',    km:12, strides:true,  core:false, strength:null },
+  ],
+  3: [
+    { day:'Mon', type:'Workout', km:13, strides:true,  core:false, strength:'A' },
+    { day:'Tue', type:'Easy',    km:12, strides:true,  core:false, strength:null },
+    { day:'Wed', type:'Workout', km:13, strides:true,  core:false, strength:'B' },
+    { day:'Thu', type:'Rest',    km:0,  strides:false, core:false, strength:null },
+    { day:'Fri', type:'Easy',    km:6,  strides:false, core:false, strength:null },
+    { day:'Sat', type:'Workout', km:8,  strides:false, core:false, strength:null },
+    { day:'Sun', type:'Easy',    km:12, strides:true,  core:false, strength:null },
+  ],
+  4: [
+    { day:'Mon', type:'Workout', km:14, strides:true,  core:false, strength:'A' },
+    { day:'Tue', type:'Easy',    km:12, strides:true,  core:false, strength:null },
+    { day:'Wed', type:'Workout', km:13, strides:true,  core:false, strength:'B' },
+    { day:'Thu', type:'Easy',    km:6,  strides:true,  core:false, strength:null },
+    { day:'Fri', type:'Workout', km:5,  strides:false, core:false, strength:null },
+    { day:'Sat', type:'Easy',    km:10, strides:true,  core:true,  strength:null },
+    { day:'Sun', type:'Easy',    km:12, strides:true,  core:false, strength:null },
+  ],
+  5: [
+    { day:'Mon', type:'Workout', km:14, strides:true,  core:false, strength:'A' },
+    { day:'Tue', type:'Easy',    km:12, strides:true,  core:false, strength:null },
+    { day:'Wed', type:'Workout', km:14, strides:true,  core:false, strength:'B' },
+    { day:'Thu', type:'Rest',    km:0,  strides:false, core:false, strength:null },
+    { day:'Fri', type:'Easy',    km:11, strides:true,  core:true,  strength:null },
+    { day:'Sat', type:'Long',    km:17, strides:true,  core:false, strength:null },
+    { day:'Sun', type:'Easy',    km:12, strides:true,  core:false, strength:null },
+  ],
+  6: [
+    { day:'Mon', type:'Easy',    km:12, strides:true,  core:false, strength:'A' },
+    { day:'Tue', type:'Workout', km:13, strides:true,  core:false, strength:null },
+    { day:'Wed', type:'Easy',    km:12, strides:true,  core:false, strength:'B' },
+    { day:'Thu', type:'Easy',    km:6,  strides:true,  core:false, strength:null },
+    { day:'Fri', type:'Workout', km:8,  strides:false, core:false, strength:null },
+    { day:'Sat', type:'Easy',    km:10, strides:true,  core:true,  strength:null },
+    { day:'Sun', type:'Easy',    km:12, strides:true,  core:false, strength:null },
+  ],
+};
+const PRESC = { Easy:'50–70 min easy', Long:'70–80 min long', Rest:'Rest from running', Workout:'Quality workout', 'Cross train':'Cross-training' };
+
+function isoDate(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function shortDate(d) {
+  return MONTHS[d.getMonth()] + ' ' + d.getDate();
+}
+function riegelTime(t, d1, d2) {
+  return t * Math.pow(d2 / d1, 1.06);
+}
+function parsePaceStr(str) {
+  const m = /^(\d+):(\d{1,2})$/.exec((str||'').trim());
+  if (!m) return null;
+  return parseInt(m[1],10)*60 + parseInt(m[2],10);
+}
+function mondayOf(d) {
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const dow = x.getDay();
+  x.setDate(x.getDate() + (dow === 0 ? -6 : 1 - dow));
+  return x;
+}
+function addDays(d, n) {
+  const x = new Date(d);
+  x.setDate(x.getDate() + n);
+  return x;
+}
+function weekNumberFor(monday, startIso) {
+  const start = mondayOf(new Date((startIso || PROGRAM_START_ISO) + 'T00:00:00'));
+  const diffDays = Math.round((monday - start) / 86400000);
+  return Math.max(1, Math.min(8, Math.floor(diffDays / 7) + 1));
+}
+function generateWeek(monday, todayIso, weekNum) {
+  const template = (weekNum && WEEKLY_TEMPLATES[weekNum]) || WEEK_TEMPLATE;
+  return template.map((t, i) => {
+    const d = addDays(monday, i);
+    const iso = isoDate(d);
+    return {
+      id: i+1, day: t.day, date: shortDate(d), iso,
+      type: t.type, presc: PRESC[t.type], km: t.km,
+      strides: t.strides, core: t.core, strength: t.strength,
+      status: iso === todayIso ? 'today' : 'upcoming',
+      stravaId: null,
+      crossTrain: null,
+      manual: false,
+    };
+  });
+}
+
+function cssToObj(str) {
+  const out = {};
+  if (!str) return out;
+  str.split(';').forEach(rule => {
+    const idx = rule.indexOf(':');
+    if (idx === -1) return;
+    let prop = rule.slice(0, idx).trim();
+    const val = rule.slice(idx + 1).trim();
+    if (!prop || !val) return;
+    prop = prop.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+    out[prop] = val;
+  });
+  return out;
+}
+
+function loadSaved() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+const INITIAL_MONDAY = mondayOf(new Date());
+const INITIAL_WEEK = generateWeek(INITIAL_MONDAY, isoDate(new Date()), weekNumberFor(INITIAL_MONDAY));
+const INITIAL_WEEKS = [4,3,2,1].map(n => ({ l: shortDate(addDays(INITIAL_MONDAY, -n*7)), km: 0, target: 60 }))
+  .concat([{ l: shortDate(INITIAL_MONDAY), km: 0, target: 60, current: true }]);
+
+const INITIAL_RACES = [
+  { id:1, iso:'2026-09-11', sub:'vs', label:'Purple & White Intrasquad', location:'London, ON · Gibbons Park', tag:'Time Trial', isGoal:false },
+  { id:2, iso:'2026-09-26', sub:'vs', label:'Vigars & Salter Western International', location:'London, ON · Thames Valley Golf Club', tag:'OUA', isGoal:false },
+  { id:3, iso:'2026-10-02', sub:'at', label:'Joe Piane – Notre Dame Invitational', location:'South Bend, Ind.', tag:'OUA', isGoal:false },
+  { id:4, iso:'2026-10-16', sub:'at', label:'Hamilton Invitational', location:'Christie Lake Conservation Area · Dundas, ON', tag:'OUA & U SPORTS Selection', isGoal:false },
+  { id:5, iso:'2026-10-31', sub:null, label:'OUA Championship', location:'Malden Park · Windsor, ON', tag:'OUA Championship', isGoal:true },
+  { id:6, iso:'2026-11-14', sub:null, label:'U SPORTS Championship', location:'Christie Lake Conservation Area · Dundas, ON', tag:'U SPORTS', isGoal:false },
+];
+
+const ACTIVATION_ROUTINE = [
+  { id:1, name:'Cat–cow', reps:'x 8', note:'Mobilize your spine and pelvis.' },
+  { id:2, name:"World's Greatest Stretch", reps:'x 3 per side', note:'Open your hips, hip flexors, hamstrings, and thoracic spine.' },
+  { id:3, name:'Glute bridges', reps:'x 12', note:'Pause for 2 seconds at the top. Focus on squeezing your glutes rather than arching your back.' },
+  { id:4, name:'Bird dogs', reps:'x 8 per side', note:'Keep your hips level and brace your core.' },
+  { id:5, name:'Bodyweight squats', reps:'x 10', note:'Smooth, controlled reps. Think about driving through your whole foot.' },
+  { id:6, name:'Leg swings', reps:'', note:'Front-to-back: 10 per leg. Side-to-side: 10 per leg.' },
+  { id:7, name:'Single-leg calf raises', reps:'x 10 per side', note:'Helps activate the calves and Achilles before running.' },
+  { id:8, name:'Running drills', reps:'~30–45 sec each', note:'A-skips · High knees · Butt kicks' },
+];
+
+const defaultState = {
+  planVersion: PLAN_VERSION,
+  view: 'overview',
+  isNarrow: false,
+  week: INITIAL_WEEK,
+  weekTarget: 60,
+  weeks: INITIAL_WEEKS,
+  races: INITIAL_RACES,
+  crossTrainLog: [],
+  manualCross: [],
+  weight: [],
+  weightGoal: 124.6,
+  paceGoalSec: 225,
+  programStart: PROGRAM_START_ISO,
+  profile: { name:'Nora Treleaven', team:'Western XC', tier:'Veteran' },
+  supps: [
+    { id:1, name:'Creatine', note:'5 g daily, any time. Lean mass + finishing kick.', taken:true },
+    { id:2, name:'Magnesium glycinate', note:'300 mg evening. Recovery & sleep, easy on the gut.', taken:false },
+    { id:3, name:'Iron', note:'Alternate days with vitamin C, away from coffee. Ferritin 55 (checked mid-Aug).', taken:false },
+  ],
+  strengthTab: 'A',
+  strengthDone: {},
+  activationDone: {},
+  sessions: {
+    A: { name:'Strength A', day:'Monday', focus:'Lower · single-leg',
+      warmup:['3×30s band walk','2×20s pogos','2×10 SL pogo','2×20m bounds'],
+      lifts:[{id:'0',n:'Bulgarian Split Squat',s:'3 × 8'},{id:'1',n:'Barbell Hip Thrust',s:'3 × 8'},{id:'2',n:'Step Ups',s:'2 × 8'},{id:'3',n:'Single-Leg Calf Raise',s:'3 × 10'}] },
+    B: { name:'Strength B', day:'Wednesday', focus:'Posterior chain · durability',
+      warmup:['Box jumps 3×3','Lateral hops 2×8/side','A-skips / ankling 2×20m'],
+      shinNote:'Copenhagen planks + tibialis raises here are your shin insurance — don’t skip them.',
+      lifts:[{id:'0',n:'Romanian Deadlift',s:'3 × 5'},{id:'1',n:'Single-Leg Glute Bridge',s:'3 × 8'},{id:'2',n:'Back Extension',s:'3 × 10'},{id:'3',n:'Copenhagen Plank',s:'3 × 20s/side'},{id:'4',n:'Tibialis Raises',s:'2 × 15–20'}] },
+    C: { name:'Strength C', day:'Friday', focus:'Upper · push / pull',
+      warmup:[],
+      lifts:[{id:'0',n:'Pull-ups (or Lat Pulldown)',s:'3 × 6–8',meta:'rest 90s'},{id:'1',n:'Incline DB Bench Press',s:'3 × 8–10'},{id:'2',n:'Chest-Supported Row',s:'3 × 8–10',meta:'superset with press · rest 60–90s'},{id:'3',n:'DB Lateral Raise',s:'2 × 15–20'},{id:'4',n:'Face Pulls',s:'2 × 15',meta:'superset with lateral raise'},{id:'5',n:'Hanging Leg Raise',s:'2 × 10'}] },
+  },
+  workouts: {
+    1: { phase:'Build', note:'Intrasquad week — aerobic power Monday, threshold Wednesday, then race the 6K intrasquad Friday at Gibbons Park.', long:'75–90 min long (Sat, coach’s call after Friday’s race)', key:[
+      {id:'0', day:'Mon', name:'Aerobic Power', presc:'10–11 × 2 min / 1:30 min jog', pace:'3:40–4:05/km'},
+      {id:'1', day:'Wed', name:'Threshold', presc:'10 min / 8 min / 4–6 min, 1:30 min jog between', pace:'3:50–4:15/km'},
+      {id:'2', day:'Fri', name:'Intrasquad 6K', presc:'Race — 6 km at Gibbons Park', pace:'Race effort'} ] },
+    2: { phase:'Build', note:'Full build week — hill-strength aerobic power Monday, threshold Wednesday, long run + threshold Saturday.', long:'75–85 min long + 35 min threshold (Sat)', key:[
+      {id:'0', day:'Mon', name:'Aerobic Power & Hill Strength', presc:'7 × 1 km loop / 2:30 min jog', pace:'3:40–4:05/km'},
+      {id:'1', day:'Wed', name:'Threshold', presc:'6/7/8 min ladder + 9 min, 1 min jog between', pace:'3:50–4:15/km'},
+      {id:'2', day:'Sat', name:'Long Run + Threshold', presc:'75–85 min: 30 min easy + 35 min threshold + easy finish', pace:'4:05–4:25/km threshold'} ] },
+    3: { phase:'Build', note:'Western Invitational week — hill-loop aerobic power Monday, threshold Wednesday, race 8K Saturday at Thames Valley (train through the meet).', long:'No dedicated long run — Saturday’s 8K is the long effort', key:[
+      {id:'0', day:'Mon', name:'Aerobic Power (Hill Loops)', presc:'4 × (2 × 450 m loop) + 5 W Hill loops', pace:'3:40–4:05/km loops · hills hard'},
+      {id:'1', day:'Wed', name:'Threshold', presc:'15 min / 8 min / 7 min / 5 min, jog between', pace:'3:50–4:15/km'},
+      {id:'2', day:'Sat', name:'Western Invitational', presc:'Race — 8 km at Thames Valley (controlled rust-buster, all athletes race)', pace:'Race effort'} ] },
+    4: { phase:'Race & Maintain', note:'Notre Dame week — long-hill aerobic power Monday, threshold Wednesday, race 5K Friday at Burke Golf Course, South Bend.', long:'75–90 min long (Sat, coach’s call after Friday’s race)', key:[
+      {id:'0', day:'Mon', name:'Aerobic Power (Long Hills)', presc:'3 × (2 × 450 m + 450 m) + 8–9 × long hill', pace:'3:40–4:05/km loops · hills hard'},
+      {id:'1', day:'Wed', name:'Threshold', presc:'12 min / 8 min / 12 min, jog between', pace:'3:50–4:15/km'},
+      {id:'2', day:'Fri', name:'Notre Dame Invitational', presc:'Race — 5 km (W) at Burke Golf Course, South Bend', pace:'Full effort'} ] },
+    5: { phase:'Peak threshold', note:'Biggest threshold week of the block — long hills Monday, 12/2×8/12 ladder Wednesday, long run + threshold Saturday over Thanksgiving weekend. No race.', long:'85–90 min long + 35 min threshold (Sat)', key:[
+      {id:'0', day:'Mon', name:'Aerobic Power (Long Hills)', presc:'3 × (2 × 450 m + 450 m) + 8–9 × long hill', pace:'3:40–4:05/km loops · hills hard'},
+      {id:'1', day:'Wed', name:'Threshold', presc:'12 min / 2 × 8 min / 12 min, jog between', pace:'3:50–4:15/km'},
+      {id:'2', day:'Sat', name:'Long Run + Threshold', presc:'85–90 min: 30 min easy + 35 min threshold + easy finish', pace:'4:05–4:25/km threshold'} ] },
+    6: { phase:'Race & Maintain', note:'Hamilton week — Thanksgiving Monday off, aerobic power shifts to Tuesday, then race 8K Friday at Christie Lake (OUA & U SPORTS selection race).', long:'75–90 min long (Sat, coach’s call after Friday’s race)', key:[
+      {id:'0', day:'Tue', name:'Aerobic Power', presc:'4 × 5 min / 3:30 min jog', pace:'3:40–4:05/km'},
+      {id:'1', day:'Fri', name:'Hamilton Invitational', presc:'Race — 8 km at Christie Lake (OUA & U SPORTS selection race)', pace:'Full effort'} ] },
+    7: { phase:'TBD', note:'Guy’s plan runs through Oct 18 (week 6) — no workouts provided yet beyond that. Check with him closer to the date.', long:'—', key:[] },
+    8: { phase:'TBD', note:'Guy’s plan runs through Oct 18 (week 6) — no workouts provided yet beyond that. Check with him closer to the date.', long:'—', key:[] },
+  },
+  recovery: { readiness:82, sleep:7.8, soreness:'Low', shin:'clear' },
+  checkinLog: [],
+  todayDone: {},
+  selectedWeek: weekNumberFor(INITIAL_MONDAY),
+};
+
+class App extends React.Component {
+  constructor(props) {
+    super(props);
+    const saved = loadSaved();
+    if (saved.planVersion !== PLAN_VERSION) {
+      const monday = mondayOf(new Date());
+      const weekNum = weekNumberFor(monday, PROGRAM_START_ISO);
+      const freshWeek = generateWeek(monday, isoDate(new Date()), weekNum);
+      if (Array.isArray(saved.week) && saved.week.length === freshWeek.length) {
+        saved.week = freshWeek.map((d, i) => {
+          const prev = saved.week[i];
+          if (!prev || prev.iso !== d.iso) return d;
+          if (prev.manual) return prev;
+          return { ...d, status: prev.status, stravaId: prev.stravaId, crossTrain: prev.crossTrain, manual: prev.manual,
+            km: prev.status === 'done' ? prev.km : d.km };
+        });
+      } else {
+        saved.week = freshWeek;
+      }
+      saved.programStart = PROGRAM_START_ISO;
+      saved.selectedWeek = weekNum;
+      delete saved.workouts;
+      if (Array.isArray(saved.races)) {
+        saved.races = saved.races.map(r => r.id === 4
+          ? { ...r, label:'Hamilton Invitational', location:'Christie Lake Conservation Area \u00b7 Dundas, ON', tag:'OUA & U SPORTS Selection' }
+          : r);
+      }
+      saved.planVersion = PLAN_VERSION;
+    }
+    if (saved.weight && saved.weight.some(w => typeof w.lb !== 'number')) {
+      saved.weight = [];
+    }
+    if (saved.supps && !Array.isArray(saved.supps)) {
+      delete saved.supps;
+    }
+    if (saved.view === 'goals') {
+      saved.view = 'overview';
+    }
+    this.state = { ...defaultState, ...saved, modal: null, form: {}, stravaConnected: false, stravaChecked: false, garmin: null, garminError: null };
+  }
+
+  componentDidMount() {
+    this._onResize = () => this.setState({ isNarrow: window.innerWidth < 900 });
+    this._onResize();
+    window.addEventListener('resize', this._onResize);
+    this.ensureCurrentWeek();
+    this.cleanStravaRedirectParams();
+    this.syncStrava();
+    this.syncGarmin();
+  }
+  componentWillUnmount() { window.removeEventListener('resize', this._onResize); }
+
+  ensureCurrentWeek = () => {
+    const today = new Date();
+    const monday = mondayOf(today);
+    const todayIso = isoDate(today);
+    const mondayIso = isoDate(monday);
+
+    this.setState(s => {
+      const first = s.week[0];
+      if (first && first.iso === mondayIso) {
+        const stale = s.week.some(r => (r.iso === todayIso ? r.status !== 'today' && r.status !== 'done' : r.status === 'today'));
+        if (!stale) return null;
+        return { week: s.week.map(r => {
+          if (r.status === 'done') return r;
+          if (r.iso === todayIso) return { ...r, status: 'today' };
+          if (r.status === 'today') return { ...r, status: 'upcoming' };
+          return r;
+        }) };
+      }
+
+      const bankedKm = s.week.reduce((a,r) => a + (r.status==='done' ? r.km : 0), 0);
+      const prevCurrent = s.weeks.find(w => w.current);
+      const carryTarget = prevCurrent && prevCurrent.target != null ? prevCurrent.target : s.weekTarget;
+      let weeks = s.weeks.map(w => ({ ...w, current:false }));
+      if (first && first.iso) {
+        const label = shortDate(new Date(first.iso + 'T00:00:00'));
+        const idx = weeks.findIndex(w => w.l === label);
+        if (idx >= 0) weeks[idx] = { ...weeks[idx], l: label, km: bankedKm };
+      }
+      weeks = [...weeks, { l: shortDate(monday), km: 0, target: carryTarget, current: true }].slice(-5);
+
+      const weekNum = weekNumberFor(monday, s.programStart);
+      return {
+        week: generateWeek(monday, todayIso, weekNum),
+        weeks,
+        weekTarget: carryTarget,
+        selectedWeek: weekNum,
+      };
+    });
+  };
+
+  cleanStravaRedirectParams = () => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('strava')) {
+      params.delete('strava');
+      const qs = params.toString();
+      window.history.replaceState({}, '', window.location.pathname + (qs ? '?'+qs : ''));
+    }
+  };
+
+  syncStrava = async () => {
+    try {
+      const statusRes = await fetch('/api/strava/status');
+      const status = await statusRes.json();
+      this.setState({ stravaConnected: !!status.connected, stravaChecked: true });
+      if (!status.connected) return;
+      const currentMonday = mondayOf(new Date());
+      const afterEpoch = Math.floor(addDays(currentMonday, -28).getTime() / 1000);
+      const actRes = await fetch('/api/strava/activities?after=' + afterEpoch);
+      const data = await actRes.json();
+      if (!data.connected || !Array.isArray(data.activities)) return;
+      const byDate = {};
+      data.activities.forEach(a => {
+        const cur = byDate[a.date];
+        if (!cur || (a.sport === 'Run' && cur.sport !== 'Run')) byDate[a.date] = a;
+      });
+      const priorMondays = [4,3,2,1].map(n => addDays(currentMonday, -n*7));
+      this.setState(s => {
+        const weekIsos = new Set(s.week.map(r => r.iso));
+        const crossTrainLog = data.activities
+          .filter(a => a.sport !== 'Run' && weekIsos.has(a.date))
+          .map(a => ({ id: a.id, iso: a.date, sport: a.sport, km: a.distance_km, min: a.moving_time_min }))
+          .sort((a,b) => a.iso.localeCompare(b.iso));
+        const histWeeks = priorMondays.map(m => {
+          const startIso = isoDate(m), endIso = isoDate(addDays(m,6));
+          const km = data.activities
+            .filter(a => a.sport === 'Run' && a.date >= startIso && a.date <= endIso)
+            .reduce((sum,a) => sum + a.distance_km, 0);
+          const label = shortDate(m);
+          const prevWeek = s.weeks.find(w => w.l === label);
+          const target = prevWeek && prevWeek.target != null ? prevWeek.target : s.weekTarget;
+          return { l: label, km: Math.round(km), target };
+        });
+        const currentWeekStartIso = isoDate(currentMonday), currentWeekEndIso = isoDate(addDays(currentMonday, 6));
+        const currentWeekKm = data.activities
+          .filter(a => a.sport === 'Run' && a.date >= currentWeekStartIso && a.date <= currentWeekEndIso)
+          .reduce((sum,a) => sum + a.distance_km, 0);
+        const prevCurrentEntry = s.weeks.find(w => w.current) || s.weeks[s.weeks.length-1] || {};
+        const currentWeekEntry = { ...prevCurrentEntry, l: shortDate(currentMonday), km: Math.round(currentWeekKm), current: true };
+        return {
+          week: s.week.map(r => {
+            if (r.manual) return r;
+            const a = byDate[r.iso];
+            if (!a) return r;
+            if (a.sport === 'Run') {
+              return { ...r, status: 'done', km: a.distance_km, stravaId: a.id, crossTrain: null };
+            }
+            return { ...r, status: 'done', stravaId: a.id, crossTrain: { sport: a.sport, km: a.distance_km, min: a.moving_time_min } };
+          }),
+          crossTrainLog,
+          weeks: [...histWeeks, currentWeekEntry],
+        };
+      });
+    } catch (e) {
+      this.setState({ stravaChecked: true });
+    }
+  };
+
+  computeReadiness(sleep, soreness, shin) {
+    let readiness = 70 + Math.round((sleep-7)*8);
+    if (soreness==='Low') readiness += 6; if (soreness==='High') readiness -= 12;
+    if (shin==='sore') readiness -= 15; if (shin==='watch') readiness -= 6;
+    return Math.max(35, Math.min(97, readiness));
+  }
+
+  syncGarmin = async () => {
+    try {
+      const res = await fetch('/api/garmin/recovery');
+      const data = await res.json();
+      if (!data.connected) {
+        this.setState({ garmin: null, garminError: data.error || 'Garmin sync unavailable' });
+        return;
+      }
+      this.setState(s => {
+        const sleep = data.sleepHours != null ? data.sleepHours : s.recovery.sleep;
+        const readiness = this.computeReadiness(sleep, s.recovery.soreness, s.recovery.shin);
+        return { garmin: data, garminError: null, recovery: { ...s.recovery, sleep, readiness } };
+      });
+    } catch (e) {
+      this.setState({ garmin: null, garminError: 'Could not reach the dashboard server' });
+    }
+  };
+
+  componentDidUpdate(prevProps, prevState) {
+    if (prevState === this.state) return;
+    const {
+      view, week, weekTarget, weeks, weight, weightGoal, paceGoalSec, profile, programStart, supps,
+      strengthTab, strengthDone, sessions, workouts, recovery, checkinLog, todayDone, selectedWeek,
+      races, crossTrainLog, manualCross, activationDone,
+    } = this.state;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      view, week, weekTarget, weeks, weight, weightGoal, paceGoalSec, profile, programStart, supps,
+      strengthTab, strengthDone, sessions, workouts, recovery, checkinLog, todayDone, selectedWeek,
+      races, crossTrainLog, manualCross, activationDone,
+    }));
+  }
+
+  exportData = () => {
+    const {
+      week, weekTarget, weeks, weight, weightGoal, paceGoalSec, profile, programStart, supps,
+      strengthTab, strengthDone, sessions, workouts, recovery, checkinLog, todayDone, selectedWeek,
+      races, crossTrainLog, manualCross, activationDone,
+    } = this.state;
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      week, weekTarget, weeks, weight, weightGoal, paceGoalSec, profile, programStart, supps,
+      strengthTab, strengthDone, sessions, workouts, recovery, checkinLog, todayDone, selectedWeek,
+      races, crossTrainLog, manualCross, activationDone,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'training-dashboard-backup-' + isoDate(new Date()) + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  setView = (v) => this.setState({ view: v });
+  toggleRun = (id) => this.setState(s => ({ week: s.week.map(r => r.id===id ? {...r, status: r.status==='done'?'upcoming':'done'} : r) }));
+  toggleTodayItem = (k) => this.setState(s => ({ todayDone: {...s.todayDone, [k]: !s.todayDone[k]} }));
+  toggleSupp = (id) => this.setState(s => ({ supps: s.supps.map(x => x.id===id ? {...x, taken:!x.taken} : x) }));
+  addSupp = (name, note) => this.setState(s => ({ supps: [...s.supps, { id:Date.now(), name, note:note||'', taken:false }] }));
+  deleteSupp = (id) => this.setState(s => ({ supps: s.supps.filter(x => x.id!==id) }));
+  deleteCheckin = (id) => this.setState(s => ({ checkinLog: s.checkinLog.filter(c => c.id!==id) }));
+
+  editSessionMeta = (letter, patch) => this.setState(s => ({
+    sessions: { ...s.sessions, [letter]: { ...s.sessions[letter], ...patch } },
+  }));
+  addLift = (letter, lift) => this.setState(s => ({
+    sessions: { ...s.sessions, [letter]: { ...s.sessions[letter], lifts: [...s.sessions[letter].lifts, { id:String(Date.now()), ...lift }] } },
+  }));
+  editLift = (letter, id, patch) => this.setState(s => ({
+    sessions: { ...s.sessions, [letter]: { ...s.sessions[letter], lifts: s.sessions[letter].lifts.map(l => l.id===id ? {...l, ...patch} : l) } },
+  }));
+  deleteLift = (letter, id) => this.setState(s => ({
+    sessions: { ...s.sessions, [letter]: { ...s.sessions[letter], lifts: s.sessions[letter].lifts.filter(l => l.id!==id) } },
+  }));
+
+  editWorkoutMeta = (weekNum, patch) => this.setState(s => ({
+    workouts: { ...s.workouts, [weekNum]: { ...s.workouts[weekNum], ...patch } },
+  }));
+  addKeySession = (weekNum, session) => this.setState(s => ({
+    workouts: { ...s.workouts, [weekNum]: { ...s.workouts[weekNum], key: [...s.workouts[weekNum].key, { id:String(Date.now()), ...session }] } },
+  }));
+  editKeySession = (weekNum, id, patch) => this.setState(s => ({
+    workouts: { ...s.workouts, [weekNum]: { ...s.workouts[weekNum], key: s.workouts[weekNum].key.map(k => k.id===id ? {...k, ...patch} : k) } },
+  }));
+  deleteKeySession = (weekNum, id) => this.setState(s => ({
+    workouts: { ...s.workouts, [weekNum]: { ...s.workouts[weekNum], key: s.workouts[weekNum].key.filter(k => k.id!==id) } },
+  }));
+
+  setStrengthTab = (t) => this.setState({ strengthTab: t });
+  toggleLift = (key) => this.setState(s => ({ strengthDone: {...s.strengthDone, [key]: !s.strengthDone[key]} }));
+  openStrength = (t) => this.setState({ view:'strength', strengthTab:t });
+  setSelectedWeek = (w) => this.setState({ selectedWeek: w });
+
+  toggleActivation = (id) => this.setState(s => ({ activationDone: {...s.activationDone, [id]: !s.activationDone[id]} }));
+  resetActivation = () => this.setState({ activationDone: {} });
+
+  deleteRace = (id) => this.setState(s => ({ races: s.races.filter(r => r.id!==id) }));
+  setGoalRace = (id) => this.setState(s => ({ races: s.races.map(r => ({ ...r, isGoal: r.id===id })) }));
+
+  editDaySession = (id, patch) => this.setState(s => ({
+    week: s.week.map(r => r.id===id
+      ? { ...r, ...patch, presc: PRESC[patch.type || r.type], manual:true, stravaId:null, crossTrain:null }
+      : r),
+  }));
+  clearDaySession = (id) => this.editDaySession(id, { type:'Rest', km:0, strides:false, core:false, strength:null });
+  setWeekTarget = (label, target) => this.setState(s => {
+    const weeks = s.weeks.map(w => w.l===label ? {...w, target} : w);
+    const isCurrent = !!(s.weeks.find(w => w.l===label) || {}).current;
+    return isCurrent ? { weeks, weekTarget: target, modal:null } : { weeks, modal:null };
+  });
+  deleteCross = (id) => this.setState(s => ({ manualCross: s.manualCross.filter(c => c.id!==id) }));
+  swapDays = (idA, idB) => this.setState(s => {
+    if (idA === idB) return null;
+    const a = s.week.find(r => r.id===idA), b = s.week.find(r => r.id===idB);
+    if (!a || !b) return null;
+    const planFields = ['type','presc','km','strides','core','strength'];
+    const aPlan = {}, bPlan = {};
+    planFields.forEach(f => { aPlan[f] = a[f]; bPlan[f] = b[f]; });
+    return { week: s.week.map(r => {
+      if (r.id===idA) return { ...r, ...bPlan, manual:true, stravaId:null, crossTrain:null };
+      if (r.id===idB) return { ...r, ...aPlan, manual:true, stravaId:null, crossTrain:null };
+      return r;
+    }) };
+  });
+
+  openModal = (m, payload) => {
+    let form = {};
+    if (m==='run') {
+      const todayRow = this.state.week.find(r => r.iso === isoDate(new Date()));
+      form = { day: todayRow ? todayRow.day : 'Mon', type:'Easy', km:'' };
+    }
+    if (m==='weight') form = { lb:'' };
+    if (m==='checkin') form = { sleep:String(this.state.recovery.sleep), soreness:this.state.recovery.soreness, shin:this.state.recovery.shin };
+    if (m==='race') form = payload
+      ? { id:payload.id, date:payload.iso, sub:payload.sub||'none', label:payload.label, location:payload.location, tag:payload.tag }
+      : { id:null, date:'', sub:'none', label:'', location:'', tag:'OUA' };
+    if (m==='raceResult') form = { id:payload.id, label:payload.label,
+      time:(payload.result && payload.result.time) || '',
+      place:(payload.result && payload.result.place) || '',
+      note:(payload.result && payload.result.note) || '' };
+    if (m==='target') {
+      const cur = this.state.weeks.find(w => w.current) || this.state.weeks[this.state.weeks.length-1] || {};
+      form = payload
+        ? { weekLabel:payload.label, weekTarget:String(payload.target != null ? payload.target : this.state.weekTarget) }
+        : { weekLabel:cur.l, weekTarget:String(cur.target != null ? cur.target : this.state.weekTarget) };
+    }
+    if (m==='session') form = { id:payload.id, dayLabel:payload.day+' · '+payload.date, type:payload.type,
+      km:String(payload.km), strides:payload.strides?'yes':'no', core:payload.core?'yes':'no', strength:payload.strength||'none' };
+    if (m==='cross') {
+      const todayRow = this.state.week.find(r => r.iso === isoDate(new Date()));
+      form = { day: todayRow ? todayRow.day : 'Mon', sport:'Ride', km:'', min:'' };
+    }
+    if (m==='weightGoal') form = { weightGoal:String(this.state.weightGoal) };
+    if (m==='paceGoal') form = { pace: this.paceStr(this.state.paceGoalSec) };
+    if (m==='profile') form = { name:this.state.profile.name, team:this.state.profile.team, tier:this.state.profile.tier };
+    if (m==='programSettings') form = { programStart:this.state.programStart };
+    if (m==='supp') form = { name:'', note:'' };
+    if (m==='lift') form = payload.liftId
+      ? { sessionKey:payload.sessionKey, liftId:payload.liftId, n:payload.n, s:payload.s, meta:payload.meta||'' }
+      : { sessionKey:payload.sessionKey, liftId:null, n:'', s:'', meta:'' };
+    if (m==='sessionMeta') form = { letter:payload.letter, name:payload.name, day:payload.day, focus:payload.focus };
+    if (m==='workoutMeta') form = { weekNum:payload.weekNum, phase:payload.phase, note:payload.note, long:payload.long };
+    if (m==='keySession') form = payload.sessionId
+      ? { weekNum:payload.weekNum, sessionId:payload.sessionId, day:payload.day, name:payload.name, presc:payload.presc, pace:payload.pace }
+      : { weekNum:payload.weekNum, sessionId:null, day:'Wed', name:'', presc:'', pace:'' };
+    this.setState({ modal:m, form });
+  };
+  closeModal = () => this.setState({ modal:null });
+  setF = (k,v) => this.setState(s => ({ form: {...s.form, [k]:v} }));
+
+  formatShort(d) { return MONTHS[d.getMonth()] + ' ' + d.getDate(); }
+
+  submit = () => {
+    const { modal, form } = this.state;
+    if (modal==='run') {
+      const km = parseFloat(form.km)||0;
+      const row = this.state.week.find(r => r.day===form.day);
+      if (row) this.editDaySession(row.id, { type:form.type, km, status:'done' });
+      this.setState({ modal:null });
+    } else if (modal==='weight') {
+      const lb = parseFloat(form.lb);
+      if (lb) this.setState(s => ({ weight: [...s.weight, {d: this.formatShort(new Date()), lb: Math.round(lb*10)/10}], modal:null }));
+      else this.setState({ modal:null });
+    } else if (modal==='checkin') {
+      const sleep = Math.round((parseFloat(form.sleep)||this.state.recovery.sleep)*10)/10;
+      const readiness = this.computeReadiness(sleep, form.soreness, form.shin);
+      const logEntry = { id:Date.now(), d:this.formatShort(new Date()), sleep, soreness:form.soreness, shin:form.shin, readiness };
+      this.setState(s => ({
+        recovery: {...s.recovery, sleep, soreness:form.soreness, shin:form.shin, readiness},
+        checkinLog: [...s.checkinLog, logEntry],
+        modal:null,
+      }));
+    } else if (modal==='race') {
+      const { id, date, sub, label, location, tag } = form;
+      if (!date || !label) { this.setState({ modal:null }); return; }
+      this.setState(s => {
+        let races;
+        if (id) {
+          races = s.races.map(r => r.id===id ? { ...r, iso:date, sub: sub&&sub!=='none'?sub:null, label, location, tag } : r);
+        } else {
+          races = [...s.races, { id:Date.now(), iso:date, sub: sub&&sub!=='none'?sub:null, label, location, tag, isGoal:false }];
+        }
+        races.sort((a,b) => a.iso.localeCompare(b.iso));
+        return { races, modal:null };
+      });
+    } else if (modal==='raceResult') {
+      const { id, time, place, note } = form;
+      this.setState(s => ({
+        races: s.races.map(r => r.id === Number(id)
+          ? { ...r, result: time.trim() ? { time: time.trim(), place:(place||'').trim(), note:(note||'').trim() } : null }
+          : r),
+        modal: null,
+      }));
+    } else if (modal==='target') {
+      const wt = parseFloat(form.weekTarget);
+      if (wt > 0) this.setWeekTarget(form.weekLabel, wt);
+      else this.setState({ modal:null });
+    } else if (modal==='session') {
+      const { id, type, km, strides, core, strength } = form;
+      this.editDaySession(Number(id), {
+        type, km: parseFloat(km)||0, strides: strides==='yes', core: core==='yes',
+        strength: strength && strength!=='none' ? strength : null,
+      });
+      this.setState({ modal:null });
+    } else if (modal==='cross') {
+      const min = parseInt(form.min, 10) || 0;
+      if (!min) { this.setState({ modal:null }); return; }
+      const km = parseFloat(form.km) || 0;
+      this.setState(s => {
+        const row = s.week.find(r => r.day === form.day);
+        const iso = row ? row.iso : isoDate(new Date());
+        const entry = { id: 'm'+Date.now(), iso, sport: form.sport, km: Math.round(km*10)/10, min, manual:true };
+        return { manualCross: [...s.manualCross, entry], modal:null };
+      });
+    } else if (modal==='weightGoal') {
+      const wg = parseFloat(form.weightGoal);
+      if (wg > 0) this.setState({ weightGoal: wg, modal:null });
+      else this.setState({ modal:null });
+    } else if (modal==='paceGoal') {
+      const sec = parsePaceStr(form.pace);
+      if (sec > 0) this.setState({ paceGoalSec: sec, modal:null });
+      else this.setState({ modal:null });
+    } else if (modal==='profile') {
+      const name = (form.name||'').trim() || this.state.profile.name;
+      const team = (form.team||'').trim();
+      const tier = (form.tier||'').trim();
+      this.setState({ profile: { name, team, tier }, modal:null });
+    } else if (modal==='programSettings') {
+      if (form.programStart) this.setState({ programStart: form.programStart, modal:null });
+      else this.setState({ modal:null });
+    } else if (modal==='supp') {
+      const name = (form.name||'').trim();
+      if (!name) { this.setState({ modal:null }); return; }
+      this.addSupp(name, (form.note||'').trim());
+      this.setState({ modal:null });
+    } else if (modal==='lift') {
+      const { sessionKey, liftId, n, s, meta } = form;
+      if (!n.trim() || !s.trim()) { this.setState({ modal:null }); return; }
+      const patch = { n:n.trim(), s:s.trim(), meta:(meta||'').trim() };
+      if (liftId) this.editLift(sessionKey, liftId, patch);
+      else this.addLift(sessionKey, patch);
+      this.setState({ modal:null });
+    } else if (modal==='sessionMeta') {
+      const { letter, name, day, focus } = form;
+      this.editSessionMeta(letter, { name: (name||'').trim() || ('Strength '+letter), day, focus: (focus||'').trim() });
+      this.setState({ modal:null });
+    } else if (modal==='workoutMeta') {
+      const { weekNum, phase, note, long } = form;
+      this.editWorkoutMeta(Number(weekNum), { phase, note:(note||'').trim(), long:(long||'').trim() });
+      this.setState({ modal:null });
+    } else if (modal==='keySession') {
+      const { weekNum, sessionId, day, name, presc, pace } = form;
+      if (!name.trim() || !presc.trim()) { this.setState({ modal:null }); return; }
+      const patch = { day, name:name.trim(), presc:presc.trim(), pace:(pace||'').trim() };
+      if (sessionId) this.editKeySession(Number(weekNum), sessionId, patch);
+      else this.addKeySession(Number(weekNum), patch);
+      this.setState({ modal:null });
+    }
+  };
+
+  paceStr(sec){ const m=Math.floor(sec/60); const s=Math.round(sec%60); return m+':'+String(s).padStart(2,'0'); }
+
+  renderVals() {
+    const h = React.createElement;
+    const S = this.state;
+    const BLUE='#4B2E83', GREEN='#2F8F5B', AMBER='#C9A227', CLAY='#c1663f', RED='#C0392B', MUTE='#7C7591', FAINT='#C7BFDE';
+    const view = S.view;
+
+    const icon = (name) => {
+      const c = view===name ? BLUE : '#9B93AE';
+      if(name==='overview') return h('svg',{width:19,height:19,viewBox:'0 0 20 20'},h('rect',{x:2,y:2,width:7,height:7,rx:2,fill:c}),h('rect',{x:11,y:2,width:7,height:7,rx:2,fill:c,opacity:.45}),h('rect',{x:2,y:11,width:7,height:7,rx:2,fill:c,opacity:.45}),h('rect',{x:11,y:11,width:7,height:7,rx:2,fill:c}));
+      if(name==='training') return h('svg',{width:19,height:19,viewBox:'0 0 20 20'},h('rect',{x:2,y:11,width:4,height:7,rx:1.5,fill:c,opacity:.45}),h('rect',{x:8,y:7,width:4,height:11,rx:1.5,fill:c,opacity:.7}),h('rect',{x:14,y:3,width:4,height:15,rx:1.5,fill:c}));
+      if(name==='strength') return h('svg',{width:19,height:19,viewBox:'0 0 20 20'},h('rect',{x:2,y:7.5,width:4,height:5,rx:1.5,fill:c}),h('rect',{x:14,y:7.5,width:4,height:5,rx:1.5,fill:c}),h('rect',{x:6,y:9,width:8,height:2,rx:1,fill:c}));
+      if(name==='activation') return h('svg',{width:19,height:19,viewBox:'0 0 20 20',fill:'none'},h('path',{d:'M11 1.5 L4 11.5 H9.5 L8.5 18.5 L16 8 H10.5 Z',fill:c}));
+      if(name==='recovery') return h('svg',{width:19,height:19,viewBox:'0 0 20 20',fill:'none'},h('circle',{cx:10,cy:10,r:7,stroke:c,strokeWidth:2.4}),h('circle',{cx:10,cy:10,r:2.5,fill:c}));
+      if(name==='nutrition') return h('svg',{width:19,height:19,viewBox:'0 0 20 20',fill:'none'},h('circle',{cx:10,cy:10,r:7.5,stroke:c,strokeWidth:2.2}),h('line',{x1:10,y1:2.5,x2:10,y2:17.5,stroke:c,strokeWidth:2.2}));
+      if(name==='weight') return h('svg',{width:19,height:19,viewBox:'0 0 20 20',fill:'none'},h('line',{x1:2,y1:13,x2:18,y2:13,stroke:c,strokeWidth:2.2,strokeLinecap:'round'}),h('circle',{cx:13,cy:8,r:3,fill:c}));
+      if(name==='races') return h('svg',{width:19,height:19,viewBox:'0 0 20 20',fill:'none'},h('line',{x1:4,y1:2,x2:4,y2:18,stroke:c,strokeWidth:2,strokeLinecap:'round'}),h('path',{d:'M4 3 H16 L13 6 L16 9 H4 Z',fill:c}));
+      if(name==='week') return h('svg',{width:19,height:19,viewBox:'0 0 20 20',fill:'none'},h('rect',{x:2.5,y:3.5,width:15,height:14,rx:2.5,stroke:c,strokeWidth:2}),h('line',{x1:2.5,y1:7.5,x2:17.5,y2:7.5,stroke:c,strokeWidth:2}),h('line',{x1:7,y1:2,x2:7,y2:5,stroke:c,strokeWidth:2,strokeLinecap:'round'}),h('line',{x1:13,y1:2,x2:13,y2:5,stroke:c,strokeWidth:2,strokeLinecap:'round'}));
+      return h('svg',{width:19,height:19,viewBox:'0 0 20 20',fill:'none'},h('circle',{cx:10,cy:10,r:7.5,stroke:c,strokeWidth:2.2}),h('circle',{cx:10,cy:10,r:3.5,stroke:c,strokeWidth:2.2}));
+    };
+    const items = [
+      {key:'overview',label:'Home'},{key:'week',label:'Week'},{key:'training',label:'Training'},{key:'strength',label:'Strength'},
+      {key:'activation',label:'Activate'},
+      {key:'recovery',label:'Recovery'},{key:'nutrition',label:'Fuel'},{key:'weight',label:'Weight'},
+      {key:'races',label:'Races'},
+    ];
+    const weekDone = Math.round(S.week.filter(r=>r.status==='done' && !r.crossTrain && r.type!=='Cross train').reduce((a,r)=>a+r.km,0)*10)/10;
+    const nav = items.map(it => {
+      const active = view===it.key;
+      const badge = it.key==='training' ? weekDone+'k' : null;
+      return { label: it.label, icon: icon(it.key), onClick: () => this.setView(it.key), badge, badgeColor: active?BLUE:MUTE,
+        style: 'display:flex;align-items:center;gap:12px;width:100%;padding:11px 12px;border-radius:12px;font-size:14px;font-weight:'+(active?'700':'500')+';color:'+(active?'#241A38':'#5B5470')+';background:'+(active?'#FFFFFF':'transparent')+';border:1px solid '+(active?'#E4DEF0':'transparent')+';box-shadow:'+(active?'0 2px 8px -4px rgba(42,36,28,.15)':'none'),
+        tabStyle: 'display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 4px;flex:1;color:'+(active?BLUE:'#9B93AE') };
+    });
+
+    const sortedRaces = [...S.races].sort((a,b)=>a.iso.localeCompare(b.iso));
+    const goalRace = S.races.find(r=>r.isGoal) || sortedRaces[sortedRaces.length-1] || { label:'Set a goal race', iso: isoDate(addDays(new Date(),90)) };
+    const raceDate = new Date(goalRace.iso + 'T00:00:00');
+    const days = Math.max(0, Math.ceil((raceDate - new Date()) / 86400000));
+    const race = { name: goalRace.label, date: raceDate.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' }), days };
+
+    const phaseColors = { Transition:CLAY, Build:BLUE, Adaptation:AMBER, Camp:GREEN, 'Race & Maintain':CLAY, 'Peak threshold':BLUE, TBD:MUTE };
+    const programMonday = mondayOf(new Date(S.programStart + 'T00:00:00'));
+    const curWeekNum = weekNumberFor(mondayOf(new Date()), S.programStart);
+    const phaseNow = { w: curWeekNum, phase: S.workouts[curWeekNum].phase };
+    const sel = S.selectedWeek;
+    const phases = Array.from({length:8}, (_,i) => i+1).map(w => {
+      const short = shortDate(addDays(programMonday, (w-1)*7)).replace(' ','');
+      const phase = S.workouts[w].phase;
+      const cur = w===phaseNow.w, selected = w===sel;
+      return { w, short, phase, h:(24+w*5)+'px', onClick:()=>this.setSelectedWeek(w),
+        color: selected ? (phaseColors[phase]||MUTE) : (w<=phaseNow.w ? '#DAD3EC' : '#E4DEF0'),
+        ring: selected ? '0 0 0 3px #241A3822' : 'none',
+        labelColor: (selected||cur) ? (phaseColors[phase]||MUTE) : '#9B93AE' };
+    });
+    const wk = S.workouts[sel];
+    const selWeek = { w:sel, phase:wk.phase, phaseColor:phaseColors[wk.phase] || MUTE, note:wk.note, long:wk.long,
+      hasKey:wk.key.length>0, isNow: sel===phaseNow.w,
+      key:wk.key.map(k=>{ const tc = k.name.indexOf('Threshold')>=0?BLUE:(k.name.indexOf('Hill')>=0?CLAY:AMBER);
+        return {...k, dot:tc,
+          onEdit: ()=>this.openModal('keySession', { weekNum:sel, sessionId:k.id, day:k.day, name:k.name, presc:k.presc, pace:k.pace }),
+          onDelete: ()=>this.deleteKeySession(sel, k.id) }; }),
+      onEditMeta: ()=>this.openModal('workoutMeta', { weekNum:sel, phase:wk.phase, note:wk.note, long:wk.long }),
+      onAddKey: ()=>this.openModal('keySession', { weekNum:sel, sessionId:null }) };
+
+    const weekTarget = S.weekTarget;
+    const weekPct = Math.min(weekDone/weekTarget, 1);
+    const runsPlanned = S.week.filter(r=>r.km>0 && r.type!=='Cross train').length;
+    const runsDone = S.week.filter(r=>r.status==='done' && r.km>0 && !r.crossTrain && r.type!=='Cross train').length;
+
+    const ringEl = (size, pct, color, trackColor) => {
+      trackColor = trackColor || '#ECE6F5';
+      const r=(size/2)-8, C=2*Math.PI*r, c=size/2;
+      return h('svg',{width:size,height:size,viewBox:`0 0 ${size} ${size}`},
+        h('circle',{cx:c,cy:c,r,fill:'none',stroke:trackColor,strokeWidth:11}),
+        h('circle',{cx:c,cy:c,r,fill:'none',stroke:color,strokeWidth:11,strokeLinecap:'round',strokeDasharray:C,strokeDashoffset:C*(1-pct),transform:`rotate(-90 ${c} ${c})`,style:{transition:'stroke-dashoffset .6s cubic-bezier(.2,.8,.2,1)'}}));
+    };
+    const ring = ringEl(132, weekPct, AMBER, 'rgba(255,255,255,.24)');
+
+    const rd = S.recovery.readiness;
+    const rColor = rd>=80?GREEN : rd>=65?AMBER : RED;
+    const shinMap = { clear:{label:'shin clear',color:GREEN,bg:'#e7f2ea'}, watch:{label:'shin — watch',color:AMBER,bg:'#f7efd9'}, sore:{label:'shin sore',color:RED,bg:'#f7e5e0'} };
+    const sm = shinMap[S.recovery.shin] || shinMap.clear;
+    const recovery = {
+      readiness: rd, color: rColor, sleep: S.recovery.sleep, soreness: S.recovery.soreness,
+      shinLabel: sm.label, shinColor: sm.color, shinBg: sm.bg,
+      status: rd>=80?'Ready to roll' : 'Ease off today',
+      blurb: rd>=80 ? 'Sleep and soreness are green. Nothing hard on the plan today anyway — just run easy and enjoy it.' : 'Signals are a little soft. Keep it easy, get the carbs in, and prioritise sleep tonight.',
+      shinNote: S.recovery.shin==='clear'
+        ? 'No pain hopping, no pinpoint tenderness — shoes at 180 km. Keep easy days truly easy and flag any medial soreness the day it shows up.'
+        : 'Medial soreness flagged. Swap to elliptical, drop the impact, and reassess in 2–3 days before adding volume back.',
+    };
+    const readyRing = ringEl(98, rd/100, rColor);
+    const readyRingLg = ringEl(122, rd/100, rColor);
+    const recoverySignals = [
+      {label:'Sleep last night', value:S.recovery.sleep+' h', color: S.recovery.sleep>=7.5?GREEN:AMBER},
+      {label:'Muscle soreness', value:S.recovery.soreness, color: S.recovery.soreness==='Low'?GREEN:(S.recovery.soreness==='Moderate'?AMBER:RED)},
+      {label:'Resting HR', value: S.garmin && S.garmin.restingHR ? S.garmin.restingHR+' bpm' : '—', color:'#241A38'},
+      {label:'Shin status', value:sm.label.replace('shin','').replace('—','').trim()||'clear', color:sm.color},
+    ];
+    if (S.garmin) {
+      const hrvRaw = S.garmin.hrvStatus;
+      const hrvLabel = hrvRaw ? hrvRaw.charAt(0) + hrvRaw.slice(1).toLowerCase() : '—';
+      const hrvColor = hrvRaw==='BALANCED' ? GREEN : (hrvRaw==='UNBALANCED' ? RED : AMBER);
+      recoverySignals.push({label:'HRV status (Garmin)', value:hrvLabel, color:hrvColor});
+      if (S.garmin.bodyBatteryWake != null) {
+        const bb = S.garmin.bodyBatteryWake;
+        recoverySignals.push({label:'Body Battery at wake', value:bb, color: bb>=70?GREEN:(bb>=40?AMBER:RED)});
+      }
+    }
+
+    const checkinLog = [...S.checkinLog].reverse().map(c => {
+      const sm2 = shinMap[c.shin] || shinMap.clear;
+      return { ...c, shinLabel: sm2.label, shinColor: sm2.color, shinBg: sm2.bg, onDelete: ()=>this.deleteCheckin(c.id) };
+    });
+    const shinIcon = h('svg',{width:16,height:16,viewBox:'0 0 20 20',fill:'none'},h('path',{d:'M10 3 L17 16 H3 Z',stroke:'#fff',strokeWidth:2,strokeLinejoin:'round'}),h('line',{x1:10,y1:8,x2:10,y2:11,stroke:'#fff',strokeWidth:2,strokeLinecap:'round'}),h('circle',{cx:10,cy:13.5,r:1,fill:'#fff'}));
+
+    const todayIsoNow = isoDate(new Date());
+    const t = S.week.find(r=>r.iso===todayIsoNow) || S.week.find(r=>r.status==='today') || S.week[S.week.length-1];
+    const todayPlan = { day: t.day+' · '+t.date };
+    const dayTagMap = { Rest:'rest day · recover well', Long:'long day · patience pays', Workout:'workout day · bring focus', 'Cross train':'cross-train day · low impact' };
+    const dayTag = dayTagMap[t.type] || 'easy day · keep it honest';
+    const mkToday = (key, tag, chip, title, detail) => {
+      const done = !!S.todayDone[key];
+      return { tag, chip, title, detail, onToggle: ()=>this.toggleTodayItem(key), check: done?'✓':'',
+        checkBorder: done?GREEN:'#D6CCE8', checkBg: done?GREEN:'#fff', bg: done?'#f1f7f2':'#F6F3FC', border: done?'#d7ead9':'#E4DEF0' };
+    };
+    const todayItems = [];
+    if (t.crossTrain) {
+      const ct = t.crossTrain;
+      const detail = [ct.km>0?ct.km+' km':null, ct.min?ct.min+' min':null].filter(Boolean).join(' · ') + ' · synced from Strava';
+      todayItems.push({ tag:'X-TRAIN', chip:'#7a5cc4', title:'Cross-trained: '+(ct.min?ct.min+' min':ct.sport), detail,
+        onToggle:()=>{}, check:'✓', checkBorder:GREEN, checkBg:GREEN, bg:'#f1f7f2', border:'#d7ead9' });
+    } else if (t.type === 'Easy' || t.type === 'Long') {
+      const durationOnly = t.presc.replace(' easy','').replace(' long','');
+      todayItems.push(mkToday('run','RUN', BLUE, t.type+' run · '+durationOnly, t.strides ? 'Conversational pace, then 4–6 × 100 m strides' : 'Steady effort throughout.'));
+    } else if (t.type === 'Workout') {
+      todayItems.push(mkToday('run','WORKOUT', CLAY, 'Quality workout', 'Check the plan for today’s specifics.'));
+    } else if (t.type === 'Cross train') {
+      todayItems.push(mkToday('run','CROSS', '#7a5cc4', 'Cross-training', 'Bike, elliptical, or swim — keep it low impact.'));
+    }
+    if (t.core) {
+      todayItems.push(mkToday('core','CORE', CLAY, 'Core circuit', 'Planks, mason twist, scissors, push-ups — ~15 min'));
+    }
+
+    const tomorrowIso = isoDate(addDays(new Date(),1));
+    const tmrwRaw = S.week.find(r=>r.iso===tomorrowIso);
+    const tmrw = tmrwRaw || { type: WEEK_TEMPLATE[0].type, strength: WEEK_TEMPLATE[0].strength };
+    const tmrwSess = tmrw.strength ? S.sessions[tmrw.strength] : null;
+    const runPhrase = tmrw.type==='Rest' ? 'rest from running' : (tmrw.type==='Long' ? 'a long run' : 'an easy run');
+    const tomorrow = tmrwSess
+      ? { letter: tmrw.strength, label: 'Strength '+tmrw.strength, detail: '('+tmrwSess.focus.split(' ')[0].toLowerCase()+') + '+runPhrase+'.' }
+      : { letter: null, label: tmrw.type==='Rest' ? 'Rest day' : (tmrw.type+' run'), detail: tmrw.type==='Rest' ? 'Full rest — no running.' : 'Keep it easy.' };
+
+    let currentPaceSec = null;
+    if (S.garmin && S.garmin.time5K && S.garmin.time10K) {
+      const t8From5K = riegelTime(S.garmin.time5K, 5, 8);
+      const t8From10K = riegelTime(S.garmin.time10K, 10, 8);
+      currentPaceSec = (t8From5K + t8From10K) / 2 / 8;
+    }
+    const paceGoalSec = S.paceGoalSec;
+    const gapSec = currentPaceSec != null ? Math.round(currentPaceSec - paceGoalSec) : null;
+    const pace = {
+      hasCurrent: currentPaceSec != null,
+      current: currentPaceSec != null ? this.paceStr(currentPaceSec) : '—',
+      goal: this.paceStr(paceGoalSec),
+      openGoalModal: ()=>this.openModal('paceGoal'),
+      note: currentPaceSec == null
+        ? 'Connect Garmin to see a live 8K pace estimate, projected from your recent training via Garmin’s race predictor.'
+        : gapSec > 0
+          ? gapSec+'s/km off your goal pace — projected from Garmin’s 5K/10K race predictor.'
+          : 'At or ahead of your goal pace, per Garmin’s race predictor.',
+    };
+
+    const typeColors = { Easy:{bg:'#eaf0fe',c:'#4B2E83'}, Long:{bg:'#e7f2ea',c:GREEN}, Rest:{bg:'#ECE6F5',c:'#7C7591'}, Workout:{bg:'#fbeee6',c:CLAY}, 'Cross train':{bg:'#f0ecfa',c:'#7a5cc4'} };
+    const week = S.week.map(r => {
+      const done = r.status==='done'; const tc = typeColors[r.type]||typeColors.Easy;
+      const stravaNote = r.crossTrain ? `· cross-trained (${r.crossTrain.sport} ${r.crossTrain.km}km)` : (r.stravaId ? '· synced from Strava' : null);
+      const extras = [ r.strides?'+ strides':null, r.core?'+ core':null, stravaNote ].filter(Boolean).join('  ');
+      return { id:r.id, day:r.day, dateShort:r.date.split(' ')[1], type:r.type, typeBg:tc.bg, typeColor:tc.c,
+        headline: r.presc, extras: extras||'—', strength:r.strength, onStrength: r.strength?(()=>this.openStrength(r.strength)):null,
+        onToggle:()=>this.toggleRun(r.id), check: done?'✓':(r.status==='today'?'•':''),
+        checkBorder: done?GREEN:(r.status==='today'?BLUE:'#D6CCE8'), checkBg: done?GREEN:(r.status==='today'?BLUE:'#fff'),
+        onEdit: ()=>this.openModal('session', r),
+        onDelete: ()=>this.clearDaySession(r.id),
+        onDragStart: (e)=>{ e.dataTransfer.setData('text/plain', String(r.id)); e.dataTransfer.effectAllowed='move'; },
+        onDragOver: (e)=>e.preventDefault(),
+        onDrop: (e)=>{ e.preventDefault(); const fromId=Number(e.dataTransfer.getData('text/plain')); if(fromId) this.swapDays(fromId, r.id); } };
+    });
+    const last28 = Math.round(S.weeks.slice(-4).reduce((a,w)=>a+w.km,0)*10)/10;
+    const mileageStats = [
+      {label:'This week', value:weekDone, unit:' km', sub:'of '+weekTarget+' km'},
+      {label:'Last 28 days', value:last28, unit:' km', sub:'4-week block'},
+      {label:'Runs banked', value:runsDone, unit:'/'+runsPlanned, sub:'this week'},
+    ];
+    const maxKm = Math.max(...S.weeks.map(w=>Math.max(w.km, w.target||0)), 1);
+    const cW=560,cH=140,n=S.weeks.length,bw=Math.min(46,(cW/n)*0.5),gap=(cW-n*bw)/(n-1);
+    const buildWeeklyChart = () => h('svg',{viewBox:`0 0 ${cW} ${cH+22}`,width:'100%',style:{display:'block'}},
+      S.weeks.map((w,i)=>{ const bh=(w.km/maxKm)*cH; const x=i*(bw+gap); const y=cH-bh;
+        const ty = cH-((w.target||0)/maxKm)*cH;
+        return h('g',{key:i, onClick:()=>this.openModal('target',{label:w.l,target:w.target}), style:{cursor:'pointer'}},
+          h('title',null,'Click to edit this week’s target'),
+          w.target ? h('line',{x1:x,y1:ty,x2:x+bw,y2:ty,stroke:GREEN,strokeDasharray:'3 3',strokeWidth:1.5}) : null,
+          h('rect',{x,y,width:bw,height:bh,rx:6,fill:w.current?BLUE:'#DAD3EC'}),
+          h('text',{x:x+bw/2,y:y-6,textAnchor:'middle',fontSize:12,fontFamily:'Bricolage Grotesque',fontWeight:700,fill:w.current?BLUE:'#7C7591'},w.km),
+          h('text',{x:x+bw/2,y:cH+16,textAnchor:'middle',fontSize:10,fontFamily:'Hanken Grotesk',fill:'#9B93AE'},w.l));
+      }));
+    const weeklyChart = buildWeeklyChart();
+    const homeMileageChart = buildWeeklyChart();
+    const weeksAvg = S.weeks.length ? Math.round(S.weeks.reduce((a,w)=>a+w.km,0)/S.weeks.length) : 0;
+    const prevWeekKm = S.weeks.length>=2 ? S.weeks[S.weeks.length-2].km : 0;
+
+    const st = S.sessions[S.strengthTab];
+    const stKeyBase = S.strengthTab+'_';
+    const lifts = st.lifts.map(l=>{ const key=stKeyBase+l.id; const on=!!S.strengthDone[key];
+      return { id:l.id, n:l.n, s:l.s, meta:l.meta||null, onToggle:()=>this.toggleLift(key), check:on?'✓':'',
+        checkBorder:on?GREEN:'#D6CCE8', checkBg:on?GREEN:'#fff', bg:on?'#f1f7f2':'#F5F1FB', border:on?'#d7ead9':'#E4DEF0',
+        titleColor:on?'#5c6b5f':'#241A38', strike:on?'line-through':'none',
+        onEdit: ()=>this.openModal('lift', { sessionKey:S.strengthTab, liftId:l.id, n:l.n, s:l.s, meta:l.meta }),
+        onDelete: ()=>this.deleteLift(S.strengthTab, l.id) };
+    });
+    const doneCount = st.lifts.filter(l=>S.strengthDone[stKeyBase+l.id]).length;
+    const session = { name:st.name, day:st.day, focus:st.focus, warmup:st.warmup, hasWarmup:st.warmup.length>0,
+      shinNote:st.shinNote||null, lifts, doneCount, total:st.lifts.length,
+      onEditMeta: ()=>this.openModal('sessionMeta', { letter:S.strengthTab, name:st.name, day:st.day, focus:st.focus }),
+      onAddLift: ()=>this.openModal('lift', { sessionKey:S.strengthTab, liftId:null }) };
+    const strengthTabs = ['A','B','C'].map(k=>{ const active=S.strengthTab===k; const sess=S.sessions[k];
+      return { letter:k, day:sess.day.slice(0,3), onClick:()=>this.setStrengthTab(k),
+        style:'display:flex;flex-direction:column;align-items:center;gap:2px;padding:12px 22px;border-radius:14px;background:'+(active?'#4B2E83':'#FFFFFF')+';color:'+(active?'#fff':'#241A38')+';border:1px solid '+(active?'#4B2E83':'#E4DEF0') };
+    });
+
+    const suppsDone = S.supps.filter(x=>x.taken).length;
+    const suppList = S.supps.map(x => { const on=x.taken;
+      return { id:x.id, name:x.name, note:x.note, onToggle:()=>this.toggleSupp(x.id), onDelete:()=>this.deleteSupp(x.id),
+        check:on?'✓':'', checkBorder:on?BLUE:'#D6CCE8', checkBg:on?BLUE:'#fff', bg:on?'#F1ECFA':'#FFFFFF', border:on?'#DCD0F0':'#E4DEF0' };
+    });
+
+    const activationDone = S.activationDone || {};
+    const activationDoneCount = ACTIVATION_ROUTINE.filter(x=>activationDone[x.id]).length;
+    const activationItems = ACTIVATION_ROUTINE.map(x => { const on=!!activationDone[x.id];
+      return { id:x.id, name:x.name, reps:x.reps, note:x.note, onToggle:()=>this.toggleActivation(x.id),
+        check:on?'✓':'', checkBorder:on?BLUE:'#D6CCE8', checkBg:on?BLUE:'#fff', bg:on?'#F1ECFA':'#FFFFFF', border:on?'#DCD0F0':'#E4DEF0' };
+    });
+
+    const hasWeightData = S.weight.length > 0;
+    let weightStats = [], weightChart = null, weightLog = [];
+    if (hasWeightData) {
+      const cur = S.weight[S.weight.length-1].lb;
+      const start = S.weight[0].lb;
+      const delta = Math.round((cur-start)*10)/10;
+      const toGoal = Math.round((cur-S.weightGoal)*10)/10;
+      weightStats = [
+        {label:'Current', value:cur.toFixed(1), unit:' lb', sub:'latest entry', color:'#241A38'},
+        {label:'Since '+S.weight[0].d, value:(delta>0?'+':'')+delta.toFixed(1), unit:' lb', sub:'gentle trend', color: delta<=0?GREEN:AMBER},
+        {label:'To goal', value:toGoal.toFixed(1), unit:' lb', sub:'target '+S.weightGoal+' lb', color:BLUE},
+      ];
+      const lbs=S.weight.map(p=>p.lb);
+      const wMin=Math.min(...lbs,S.weightGoal)-0.5, wMax=Math.max(...lbs)+0.5;
+      const wW=560,wH=140;
+      const wPts=S.weight.map((p,i)=>({x:S.weight.length>1?i/(S.weight.length-1)*wW:wW/2, y:wH-(p.lb-wMin)/(wMax-wMin)*wH, lb:p.lb}));
+      const wGoalY=wH-(S.weightGoal-wMin)/(wMax-wMin)*wH;
+      const wPath='M'+wPts.map(p=>p.x.toFixed(1)+' '+p.y.toFixed(1)).join(' L');
+      weightChart = h('svg',{viewBox:`0 0 ${wW} ${wH+8}`,width:'100%',style:{display:'block',overflow:'visible'}},
+        h('line',{x1:0,y1:wGoalY,x2:wW,y2:wGoalY,stroke:GREEN,strokeDasharray:'5 5',strokeWidth:1.5}),
+        h('path',{d:wPath+` L${wW} ${wH} L0 ${wH} Z`,fill:'rgba(75,46,131,.07)'}),
+        h('path',{d:wPath,fill:'none',stroke:BLUE,strokeWidth:2.5,strokeLinecap:'round',strokeLinejoin:'round'}),
+        wPts.map((p,i)=>h('g',{key:i},
+          h('circle',{cx:p.x,cy:p.y,r:i===wPts.length-1?4.5:2.5,fill:BLUE}),
+          i===wPts.length-1 ? h('text',{x:p.x,y:p.y-11,textAnchor:'middle',fontSize:13,fontWeight:700,fontFamily:'Bricolage Grotesque',fill:BLUE},p.lb):null)));
+      weightLog = [...S.weight].reverse();
+    }
+
+    const raceTagColors = {
+      'Time Trial': { bg:'#f6e7de', c:CLAY },
+      'OUA': { bg:'#EFE9FA', c:BLUE },
+      'Invitational': { bg:'#E7EFFD', c:'#2F6DF6' },
+      'OUA Championship': { bg:'#FBF3D8', c:AMBER },
+      'U SPORTS': { bg:'#fbe7e7', c:'#c0392b' },
+      'Other': { bg:'#EDE9F2', c:'#736B87' },
+    };
+    const todayIsoForRaces = isoDate(new Date());
+    const races = sortedRaces.map(r => {
+      const d = new Date(r.iso + 'T00:00:00');
+      const tc = raceTagColors[r.tag] || raceTagColors.OUA;
+      return { ...r, day: d.toLocaleDateString('en-US',{weekday:'short'}), dateLabel: shortDate(d), tagBg: tc.bg, tagColor: tc.c,
+        isPast: r.iso < todayIsoForRaces, result: r.result || null, resultColor: GREEN,
+        onEdit: () => this.openModal('race', r), onDelete: () => this.deleteRace(r.id), onSetGoal: () => this.setGoalRace(r.id),
+        onLogResult: () => this.openModal('raceResult', r) };
+    });
+
+    const crossTrainSportColors = { Ride:{bg:'#E7EFFD',c:'#2F6DF6'}, Elliptical:{bg:'#f6e7de',c:CLAY}, Swim:{bg:'#e5f4f6',c:'#0E93A6'}, Other:{bg:'#EDE9F2',c:'#736B87'} };
+    const weekIsoSet = new Set(S.week.map(r => r.iso));
+    const manualThisWeek = S.manualCross.filter(c => weekIsoSet.has(c.iso));
+    const combinedCross = [...S.crossTrainLog, ...manualThisWeek].sort((a,b) => a.iso.localeCompare(b.iso));
+    const crossTrainLog = combinedCross.map(c => {
+      const d = new Date(c.iso + 'T00:00:00');
+      const sc = crossTrainSportColors[c.sport] || crossTrainSportColors.Ride;
+      return { ...c, dayLabel: d.toLocaleDateString('en-US',{weekday:'short'}), dateLabel: shortDate(d), tagBg: sc.bg, tagColor: sc.c,
+        manual: !!c.manual, onDelete: c.manual ? (()=>this.deleteCross(c.id)) : null };
+    });
+    const crossTrainMin = combinedCross.reduce((a,c) => a + c.min, 0);
+    const crossTrainKm = Math.round(combinedCross.reduce((a,c) => a + (c.km||0), 0) * 10) / 10;
+    const openCross = () => this.openModal('cross');
+
+    const modalCfg = {
+      run:{ title:'Log a run', submit:'Save run', fields:[
+        {key:'day',label:'Day',isSelect:true,options:['Mon','Tue','Wed','Thu','Fri','Sat','Sun']},
+        {key:'type',label:'Type',isSelect:true,options:['Easy','Long','Workout','Cross train','Rest']},
+        {key:'km',label:'Distance (km)',isInput:true,type:'number',placeholder:'e.g. 11'},
+      ]},
+      weight:{ title:'Log weight', submit:'Save weight', fields:[
+        {key:'lb',label:'Weight (lb)',isInput:true,type:'number',placeholder:'e.g. 128'},
+      ]},
+      checkin:{ title:'Recovery check-in', submit:'Save check-in', fields:[
+        {key:'sleep',label:'Sleep (hours)',isInput:true,type:'number',placeholder:'e.g. 7.5'},
+        {key:'soreness',label:'Muscle soreness',isSelect:true,options:['Low','Moderate','High']},
+        {key:'shin',label:'Shin status',isSelect:true,options:['clear','watch','sore']},
+      ]},
+      race:{ title: S.form.id?'Edit race':'Add race', submit: S.form.id?'Save race':'Add race', fields:[
+        {key:'date',label:'Date',isInput:true,type:'date',placeholder:''},
+        {key:'sub',label:'Type prefix',isSelect:true,options:['none','vs','at']},
+        {key:'label',label:'Race name',isInput:true,type:'text',placeholder:'e.g. OUA Championship'},
+        {key:'location',label:'Location',isInput:true,type:'text',placeholder:'e.g. Kingston, ON'},
+        {key:'tag',label:'Category',isSelect:true,options:['Time Trial','OUA','Invitational','OUA Championship','U SPORTS','Other']},
+      ]},
+      raceResult:{ title:'Log result — '+(S.form.label||''), submit:'Save result', fields:[
+        {key:'time',label:'Finish time',isInput:true,type:'text',placeholder:'e.g. 19:45'},
+        {key:'place',label:'Place (optional)',isInput:true,type:'text',placeholder:'e.g. 14th overall'},
+        {key:'note',label:'Notes (optional)',isInput:true,type:'text',placeholder:'e.g. strong finish, windy day'},
+      ]},
+      target:{ title:'Target for week of '+(S.form.weekLabel||''), submit:'Save target', fields:[
+        {key:'weekTarget',label:'Target (km)',isInput:true,type:'number',placeholder:'e.g. 73'},
+      ]},
+      session:{ title: 'Edit '+(S.form.dayLabel||'day'), submit:'Save session', fields:[
+        {key:'type',label:'Session type',isSelect:true,options:['Easy','Long','Workout','Cross train','Rest']},
+        {key:'km',label:'Distance (km)',isInput:true,type:'number',placeholder:'e.g. 11'},
+        {key:'strides',label:'Strides',isSelect:true,options:['yes','no']},
+        {key:'core',label:'Core work',isSelect:true,options:['yes','no']},
+        {key:'strength',label:'Strength session',isSelect:true,options:['none','A','B','C']},
+      ]},
+      cross:{ title:'Log cross-training', submit:'Save session', fields:[
+        {key:'day',label:'Day',isSelect:true,options:['Mon','Tue','Wed','Thu','Fri','Sat','Sun']},
+        {key:'sport',label:'Type',isSelect:true,options:['Ride','Elliptical','Swim','Other']},
+        {key:'min',label:'Duration (min)',isInput:true,type:'number',placeholder:'e.g. 45'},
+        {key:'km',label:'Distance (km) — optional',isInput:true,type:'number',placeholder:'e.g. 20'},
+      ]},
+      weightGoal:{ title:'Weight goal', submit:'Save goal', fields:[
+        {key:'weightGoal',label:'Target (lb)',isInput:true,type:'number',placeholder:'e.g. 124.6'},
+      ]},
+      paceGoal:{ title:'8K goal pace', submit:'Save goal', fields:[
+        {key:'pace',label:'Goal pace (min:sec /km)',isInput:true,type:'text',placeholder:'e.g. 3:45'},
+      ]},
+      profile:{ title:'Edit profile', submit:'Save profile', fields:[
+        {key:'name',label:'Name',isInput:true,type:'text',placeholder:'e.g. Nora Treleaven'},
+        {key:'team',label:'Team',isInput:true,type:'text',placeholder:'e.g. Western XC'},
+        {key:'tier',label:'Tier',isInput:true,type:'text',placeholder:'e.g. Veteran'},
+      ]},
+      programSettings:{ title:'Program settings', submit:'Save', fields:[
+        {key:'programStart',label:'Program start date (Week 1 Monday)',isInput:true,type:'date',placeholder:''},
+      ]},
+      supp:{ title:'Add supplement', submit:'Add supplement', fields:[
+        {key:'name',label:'Name',isInput:true,type:'text',placeholder:'e.g. Vitamin D'},
+        {key:'note',label:'Dosage / notes',isInput:true,type:'text',placeholder:'e.g. 2000 IU, mornings'},
+      ]},
+      lift:{ title: S.form.liftId?'Edit exercise':'Add exercise', submit: S.form.liftId?'Save exercise':'Add exercise', fields:[
+        {key:'n',label:'Exercise name',isInput:true,type:'text',placeholder:'e.g. Goblet Squat'},
+        {key:'s',label:'Sets × reps',isInput:true,type:'text',placeholder:'e.g. 3 × 10'},
+        {key:'meta',label:'Notes (optional)',isInput:true,type:'text',placeholder:'e.g. rest 90s'},
+      ]},
+      sessionMeta:{ title:'Edit session', submit:'Save session', fields:[
+        {key:'name',label:'Session name',isInput:true,type:'text',placeholder:'e.g. Strength A'},
+        {key:'day',label:'Day of week',isSelect:true,options:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']},
+        {key:'focus',label:'Focus',isInput:true,type:'text',placeholder:'e.g. Lower · single-leg'},
+      ]},
+      workoutMeta:{ title:'Edit Week '+(S.form.weekNum||''), submit:'Save week', fields:[
+        {key:'phase',label:'Phase',isSelect:true,options:['Transition','Build','Adaptation','Camp']},
+        {key:'note',label:'Note',isInput:true,type:'text',placeholder:'e.g. Ease into the reps.'},
+        {key:'long',label:'Sunday long run',isInput:true,type:'text',placeholder:'e.g. 80–90 min long'},
+      ]},
+      keySession:{ title: S.form.sessionId?'Edit key session':'Add key session', submit: S.form.sessionId?'Save session':'Add session', fields:[
+        {key:'day',label:'Day',isSelect:true,options:['Mon','Tue','Wed','Thu','Fri','Sat','Sun']},
+        {key:'name',label:'Session name',isInput:true,type:'text',placeholder:'e.g. Threshold'},
+        {key:'presc',label:'Prescription',isInput:true,type:'text',placeholder:'e.g. 5 × 5 min / 1 min jog'},
+        {key:'pace',label:'Target pace',isInput:true,type:'text',placeholder:'e.g. 10K–½M pace'},
+      ]},
+    };
+    const cfg = S.modal ? modalCfg[S.modal] : null;
+    const formFields = cfg ? cfg.fields.map(f=>({ label:f.label, isSelect:!!f.isSelect, isInput:!!f.isInput, options:f.options||[],
+      type:f.type||'text', placeholder:f.placeholder||'', value: S.form[f.key]!=null?S.form[f.key]:'', onChange:(e)=>this.setF(f.key, e.target.value) })) : [];
+
+    const primaryByView = { overview:{label:'+ Log run',m:'run'}, training:{label:'+ Log run',m:'run'},
+      strength:{label:'+ Log run',m:'run'}, recovery:{label:'+ Check-in',m:'checkin'}, nutrition:{label:'+ Add supplement',m:'supp'},
+      weight:{label:'+ Log weight',m:'weight'}, races:{label:'+ Add race',m:'race'} };
+    const prim = primaryByView[view]||primaryByView.overview;
+
+    return {
+      isNarrow:S.isNarrow, showSidebar:!S.isNarrow, showDesktopHeader:!S.isNarrow,
+      mainPad: S.isNarrow ? '18px 16px 26px' : '32px 34px 44px',
+      nav, view, phaseNow, phases, selWeek,
+      isOverview:view==='overview', isTraining:view==='training', isStrength:view==='strength',
+      isActivation:view==='activation',
+      isRecovery:view==='recovery', isNutrition:view==='nutrition', isWeight:view==='weight',
+      isRaces:view==='races', races, isWeek:view==='week',
+      homeMileageChart, weeksAvg, prevWeekKm,
+      profile: { ...S.profile, avatarLetter: (S.profile.name.trim().charAt(0)||'?').toUpperCase(),
+        onEdit: ()=>this.openModal('profile') },
+      programStart: S.programStart, openProgramSettings: ()=>this.openModal('programSettings'),
+      viewTitle: items.find(i=>i.key===view).label,
+      headline: view==='overview' ? 'Hey, '+(S.profile.name.trim().split(' ')[0]||'there') : (view==='nutrition'?'Fuel':items.find(i=>i.key===view).label),
+      todayStr: new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' }),
+      stravaConnected: S.stravaConnected, stravaChecked: S.stravaChecked,
+      garminError: S.garminError, retryGarmin: ()=>this.syncGarmin(),
+      race, ring, weekDone, weekTarget, weekPct, runsDone, runsPlanned, weekRemaining: Math.max(0, Math.round((weekTarget-weekDone)*10)/10),
+      openTargetModal: ()=>this.openModal('target'),
+      goTraining:()=>this.setView('training'),
+      todayPlan, todayItems, dayTag, tomorrow,
+      recovery, readyRing, readyRingLg, recoverySignals, shinIcon, checkinLog, openCheckin:()=>this.openModal('checkin'),
+      pace,
+      week, mileageStats, weeklyChart,
+      crossTrainLog, crossTrainMin, crossTrainKm, openCross,
+      session, strengthTabs,
+      suppList, suppsDone, openAddSupp:()=>this.openModal('supp'),
+      activationItems, activationDoneCount, resetActivation: this.resetActivation,
+      weightStats, weightChart, weightLog, hasWeightData, weightGoal:S.weightGoal,
+      openWeightGoalModal: ()=>this.openModal('weightGoal'),
+      modal:S.modal, modalTitle:cfg?cfg.title:'', submitLabel:cfg?cfg.submit:'', formFields,
+      closeModal:this.closeModal, submitModal:this.submit, stop:(e)=>e.stopPropagation(),
+      openPrimary:()=>this.openModal(prim.m), primaryLabel:prim.label,
+      exportData: this.exportData,
+    };
+  }
+
+  render() {
+    const v = this.renderVals();
+    return (
+      <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',fontFamily:"'Hanken Grotesk',system-ui,sans-serif",color:'#241A38',background:'#F7F5FB'}}>
+
+        {v.isNarrow && (
+          <div style={{position:'sticky',top:0,zIndex:20,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 18px',background:'rgba(247,245,251,.92)',backdropFilter:'blur(10px)',borderBottom:'1px solid #E4DEF0'}}>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <div style={{width:28,height:28,borderRadius:9,background:'#4B2E83',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:15}}>{v.profile.avatarLetter}</div>
+              <span style={{fontFamily:"'Bricolage Grotesque'",fontWeight:600,fontSize:16}}>{v.viewTitle}</span>
+            </div>
+            <button onClick={v.openPrimary} style={{background:'#4B2E83',color:'#fff',fontWeight:600,fontSize:13,padding:'9px 14px',borderRadius:11,whiteSpace:'nowrap',flex:'none'}}>{v.primaryLabel}</button>
+          </div>
+        )}
+
+        <div style={{flex:1,display:'flex',alignItems:'stretch',width:'100%',maxWidth:1300,margin:'0 auto'}}>
+
+          {v.showSidebar && (
+            <aside style={{width:242,flex:'none',padding:'26px 16px',position:'sticky',top:0,alignSelf:'flex-start',height:'100vh',display:'flex',flexDirection:'column',gap:5,background:'linear-gradient(180deg,#F1ECFA,#F7F5FB)',borderRight:'1px solid #E4DEF0'}}>
+              <div style={{display:'flex',alignItems:'center',gap:11,padding:'6px 8px 24px'}}>
+                <div style={{width:38,height:38,borderRadius:12,background:'#4B2E83',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:19,flex:'none'}}>{v.profile.avatarLetter}</div>
+                <div style={{minWidth:0,flex:1}}>
+                  <div style={{fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:15,letterSpacing:'-.01em',lineHeight:1.15,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{v.profile.name}</div>
+                  <div style={{fontSize:12,color:'#7C7591',marginTop:1}}>{v.profile.team}{v.profile.team && v.profile.tier ? ' · ' : ''}{v.profile.tier}</div>
+                </div>
+                <button onClick={v.profile.onEdit} title="Edit profile" style={{color:'#9B93AE',fontSize:12,flex:'none'}}>✎</button>
+              </div>
+              {v.nav.map((item,i) => (
+                <button key={i} onClick={item.onClick} style={cssToObj(item.style)}>
+                  <span style={{display:'flex',width:20,height:20,alignItems:'center',justifyContent:'center',flex:'none'}}>{item.icon}</span>
+                  <span>{item.label}</span>
+                  {item.badge ? <span style={{marginLeft:'auto',fontFamily:"'Bricolage Grotesque'",fontSize:12,fontWeight:700,color:item.badgeColor}}>{item.badge}</span> : null}
+                </button>
+              ))}
+              <div style={{marginTop:'auto',padding:16,borderRadius:16,background:'linear-gradient(150deg,#4B2E83,#7C5BB5)',color:'#fff'}}>
+                <div style={{fontSize:11,opacity:.85,fontWeight:600}}>{v.race.name}</div>
+                <div style={{display:'flex',alignItems:'baseline',gap:7,marginTop:8}}>
+                  <span style={{fontFamily:"'Bricolage Grotesque'",fontWeight:800,fontSize:34,lineHeight:1}}>{v.race.days}</span>
+                  <span style={{fontSize:12,opacity:.85}}>days out</span>
+                </div>
+                <div style={{fontSize:12,opacity:.85,marginTop:4}}>{v.race.date}</div>
+              </div>
+              <button onClick={v.exportData} style={{fontSize:12,color:'#9B93AE',padding:'10px 8px 2px',textAlign:'left'}}>⤓ Export my data</button>
+            </aside>
+          )}
+
+          <main style={{flex:1,minWidth:0,padding:v.mainPad}}>
+
+            {v.showDesktopHeader && (
+              <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',marginBottom:26,gap:16,flexWrap:'wrap'}}>
+                <div>
+                  <div style={{fontSize:13,color:'#7C7591',fontWeight:600}}>{v.todayStr} · Week {v.phaseNow.w} of 8 · {v.phaseNow.phase}</div>
+                  <h1 style={{margin:'5px 0 0',fontFamily:"'Bricolage Grotesque'",fontSize:34,fontWeight:800,letterSpacing:'-.025em',lineHeight:1}}>{v.headline}</h1>
+                </div>
+                <button onClick={v.openPrimary} style={{background:'#4B2E83',color:'#fff',fontWeight:600,fontSize:14,padding:'12px 19px',borderRadius:13,boxShadow:'0 8px 18px -8px rgba(75,46,131,.45)',whiteSpace:'nowrap',flex:'none'}}>{v.primaryLabel}</button>
+              </div>
+            )}
+
+            {v.stravaChecked && !v.stravaConnected && (
+              <div style={{background:'#fff4e9',border:'1px solid #f0dcc0',borderRadius:16,padding:'14px 18px',marginBottom:20,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
+                <div style={{fontSize:14,color:'#8a5a1e'}}>Connect Strava to automatically log your runs.</div>
+                <a href="/auth/strava" style={{background:'#fc5200',color:'#fff',fontWeight:700,fontSize:13,padding:'9px 16px',borderRadius:10,whiteSpace:'nowrap'}}>Connect Strava</a>
+              </div>
+            )}
+
+            {v.isOverview && (
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(262px,1fr))',gap:16,animation:'fadeUp .45s ease both'}}>
+
+                <div style={{background:'linear-gradient(155deg,#4B2E83,#35205E)',borderRadius:22,padding:24,display:'flex',gap:20,alignItems:'center',boxShadow:'0 14px 32px -16px rgba(53,32,94,.55)'}}>
+                  <div style={{position:'relative',flex:'none',width:132,height:132}}>
+                    {v.ring}
+                    <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
+                      <span style={{fontFamily:"'Bricolage Grotesque'",fontSize:32,fontWeight:800,lineHeight:1,color:'#fff'}}>{v.weekDone}</span>
+                      <span style={{fontSize:11,color:'rgba(255,255,255,.72)'}}>of {v.weekTarget} km</span>
+                    </div>
+                  </div>
+                  <div style={{minWidth:0}}>
+                    <div style={{fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:17,color:'#fff'}}>This week's mileage</div>
+                    <div style={{fontSize:14,color:'rgba(255,255,255,.85)',marginTop:6}}>{v.runsDone} of {v.runsPlanned} runs banked</div>
+                    <div style={{fontSize:13,color:'rgba(255,255,255,.65)',marginTop:2}}>{v.weekRemaining} km left to hit target</div>
+                    <button onClick={v.goTraining} style={{marginTop:14,fontSize:13,fontWeight:700,color:'#fff',textDecoration:'underline',textUnderlineOffset:'3px'}}>See the week →</button>
+                  </div>
+                </div>
+
+                <div style={{background:'#FFFFFF',border:'1px solid #E4DEF0',borderRadius:22,padding:24,boxShadow:'0 1px 2px rgba(36,26,56,.04), 0 10px 26px -18px rgba(36,26,56,.20)',gridColumn:'span 2',minWidth:0}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
+                    <div style={{fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:17}}>Today — {v.todayPlan.day}</div>
+                    <span style={{fontSize:13,color:'#7C7591'}}>{v.dayTag}</span>
+                  </div>
+                  <div style={{display:'flex',flexDirection:'column',gap:11}}>
+                    {v.todayItems.length===0 && <div style={{fontSize:13,color:'#9B93AE',padding:'6px 0'}}>Nothing on the checklist today — enjoy the rest.</div>}
+                    {v.todayItems.map((t,i) => (
+                      <div key={i} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 16px',borderRadius:15,background:t.bg,border:'1px solid '+t.border}}>
+                        <span style={{width:38,height:38,borderRadius:11,flex:'none',display:'flex',alignItems:'center',justifyContent:'center',background:t.chip,color:'#fff',fontWeight:700,fontSize:11,letterSpacing:'.03em'}}>{t.tag}</span>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontWeight:700,fontSize:15}}>{t.title}</div>
+                          <div style={{fontSize:13,color:'#5B5470'}}>{t.detail}</div>
+                        </div>
+                        <button onClick={t.onToggle} style={{width:28,height:28,borderRadius:'50%',flex:'none',border:'2px solid '+t.checkBorder,background:t.checkBg,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:15}}>{t.check}</button>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{marginTop:14,display:'flex',alignItems:'center',gap:10,fontSize:13,color:'#7C7591'}}>
+                    <span style={{width:30,height:30,borderRadius:9,background: v.tomorrow.letter?'#f6e7de':'#ECE6F5',color: v.tomorrow.letter?'#c1663f':'#7C7591',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:11,flex:'none'}}>{v.tomorrow.letter || '—'}</span>
+                    Tomorrow: <span style={{color:'#241A38',fontWeight:600}}>&nbsp;{v.tomorrow.label}</span>&nbsp;{v.tomorrow.detail}
+                  </div>
+                </div>
+
+                <div style={{background:'#FFFFFF',border:'1px solid #E4DEF0',borderRadius:22,padding:24,boxShadow:'0 1px 2px rgba(36,26,56,.04), 0 10px 26px -18px rgba(36,26,56,.20)'}}>
+                  <div style={{fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:17,marginBottom:16}}>Readiness</div>
+                  <div style={{display:'flex',alignItems:'center',gap:16}}>
+                    <div style={{position:'relative',flex:'none',width:98,height:98}}>
+                      {v.readyRing}
+                      <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'Bricolage Grotesque'",fontSize:27,fontWeight:800,color:v.recovery.color}}>{v.recovery.readiness}</div>
+                    </div>
+                    <div style={{fontSize:13,color:'#5B5470',lineHeight:1.55}}>
+                      <div><span style={{color:'#241A38',fontWeight:700}}>{v.recovery.sleep}h</span> sleep</div>
+                      <div>soreness <span style={{color:'#241A38',fontWeight:700}}>{v.recovery.soreness}</span></div>
+                      <div style={{marginTop:7,display:'inline-flex',alignItems:'center',gap:6,padding:'4px 10px',borderRadius:999,background:v.recovery.shinBg,color:v.recovery.shinColor,fontWeight:700,fontSize:12}}>{v.recovery.shinLabel}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{background:'#FFFFFF',border:'1px solid #E4DEF0',borderRadius:22,padding:24,boxShadow:'0 1px 2px rgba(36,26,56,.04), 0 10px 26px -18px rgba(36,26,56,.20)'}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+                    <div style={{fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:17}}>8K goal pace</div>
+                    <button onClick={v.pace.openGoalModal} title="Edit goal pace" style={{color:'#7C7591',fontSize:13}}>✎</button>
+                  </div>
+                  <div style={{display:'flex',alignItems:'baseline',gap:10}}>
+                    <span style={{fontFamily:"'Bricolage Grotesque'",fontSize:36,fontWeight:800,color: v.pace.hasCurrent ? '#4B2E83' : '#C7BFDE'}}>{v.pace.current}</span>
+                    <span style={{fontSize:13,color:'#7C7591'}}>/km · today’s estimate</span>
+                  </div>
+                  <div style={{display:'flex',justifyContent:'flex-end',fontSize:12,color:'#7C7591',marginTop:9}}>
+                    <span style={{color:'#2F8F5B',fontWeight:700}}>goal {v.pace.goal}</span>
+                  </div>
+                  <div style={{fontSize:13,color:'#5B5470',marginTop:11}}>{v.pace.note}</div>
+                </div>
+
+                <div style={{gridColumn:'1/-1',background:'#FFFFFF',border:'1px solid #E4DEF0',borderRadius:22,padding:24,boxShadow:'0 1px 2px rgba(36,26,56,.04), 0 10px 26px -18px rgba(36,26,56,.20)'}}>
+                  <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',marginBottom:14,flexWrap:'wrap',gap:6}}>
+                    <div>
+                      <div style={{fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:17}}>Mileage trend</div>
+                      <div style={{fontSize:13,color:'#7C7591',marginTop:2}}>Weekly running volume from Strava · {v.weeksAvg} km avg</div>
+                    </div>
+                    <div style={{fontSize:13,color:'#7C7591'}}>target {v.weekTarget} km</div>
+                  </div>
+                  {v.homeMileageChart}
+                </div>
+
+                {v.isNarrow && (
+                  <div style={{gridColumn:'1/-1',textAlign:'center'}}>
+                    <button onClick={v.exportData} style={{fontSize:13,color:'#9B93AE'}}>⤓ Export my data</button>
+                  </div>
+                )}
+
+              </div>
+            )}
+
+            {v.isTraining && (
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(262px,1fr))',gap:16,animation:'fadeUp .45s ease both'}}>
+
+                <div style={{gridColumn:'1/-1',background:'#FFFFFF',border:'1px solid #E4DEF0',borderRadius:22,padding:24,boxShadow:'0 1px 2px rgba(36,26,56,.04), 0 10px 26px -18px rgba(36,26,56,.20)'}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16,flexWrap:'wrap',gap:8}}>
+                    <div style={{display:'flex',alignItems:'center',gap:8}}>
+                      <div style={{fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:17}}>The 8-week arc</div>
+                      <button onClick={v.openProgramSettings} title="Edit program start date" style={{color:'#7C7591',fontSize:13}}>✎</button>
+                    </div>
+                    <div style={{fontSize:13,color:'#5B5470'}}>You're in <span style={{color:'#c1663f',fontWeight:700}}>Week {v.phaseNow.w} · {v.phaseNow.phase}</span> — quality work starts Week 3.</div>
+                  </div>
+                  <div style={{display:'flex',gap:6,alignItems:'flex-end'}}>
+                    {v.phases.map((p,i) => (
+                      <button key={i} onClick={p.onClick} style={{flex:1,textAlign:'center',padding:0,background:'none'}}>
+                        <div style={{height:p.h,borderRadius:7,background:p.color,marginBottom:7,boxShadow:p.ring,transition:'box-shadow .15s'}}></div>
+                        <div style={{fontSize:11,fontWeight:700,color:p.labelColor}}>W{p.w}</div>
+                        <div style={{fontSize:10,color:'#9B93AE',marginTop:1}}>{p.short}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{gridColumn:'1/-1',background:'#FFFFFF',border:'1px solid #E4DEF0',borderRadius:22,padding:24,boxShadow:'0 1px 2px rgba(36,26,56,.04), 0 10px 26px -18px rgba(36,26,56,.20)'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',marginBottom:6}}>
+                    <span style={{fontFamily:"'Bricolage Grotesque'",fontWeight:800,fontSize:19}}>Week {v.selWeek.w}</span>
+                    <span style={{padding:'4px 11px',borderRadius:999,fontSize:12,fontWeight:700,background:v.selWeek.phaseColor+'1e',color:v.selWeek.phaseColor}}>{v.selWeek.phase}</span>
+                    {v.selWeek.isNow && <span style={{fontSize:12,fontWeight:700,color:'#c1663f'}}>· this week</span>}
+                    <button onClick={v.selWeek.onEditMeta} title="Edit week" style={{color:'#7C7591',fontSize:13}}>✎</button>
+                    <span style={{marginLeft:'auto',fontSize:12,color:'#9B93AE'}}>{v.profile.tier} tier</span>
+                  </div>
+                  <div style={{fontSize:14,color:'#5B5470',lineHeight:1.5,marginBottom:16}}>{v.selWeek.note}</div>
+                  {v.selWeek.hasKey && (
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(230px,1fr))',gap:12}}>
+                      {v.selWeek.key.map((k,i) => (
+                        <div key={i} style={{padding:16,borderRadius:15,background:'#F5F1FB',border:'1px solid #E4DEF0'}}>
+                          <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:9}}>
+                            <span style={{width:9,height:9,borderRadius:'50%',background:k.dot,flex:'none'}}></span>
+                            <span style={{fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:15}}>{k.name}</span>
+                            <span style={{marginLeft:'auto',fontSize:12,fontWeight:700,color:'#7C7591'}}>{k.day}</span>
+                            <button onClick={k.onEdit} title="Edit" style={{color:'#9B93AE',fontSize:11,marginLeft:4}}>✎</button>
+                            <button onClick={k.onDelete} title="Remove" style={{color:'#9B93AE',fontSize:11}}>✕</button>
+                          </div>
+                          <div style={{fontSize:15,fontWeight:600,color:'#241A38',lineHeight:1.4}}>{k.presc}</div>
+                          <div style={{fontSize:13,color:'#a07f56',marginTop:4}}>@ {k.pace}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <button onClick={v.selWeek.onAddKey} style={{marginTop:12,fontSize:13,fontWeight:700,color:'#4B2E83'}}>+ Add key session</button>
+                  <div style={{marginTop:14,display:'flex',alignItems:'center',gap:10,fontSize:13,color:'#5B5470'}}>
+                    <span style={{width:9,height:9,borderRadius:'50%',background:'#2F8F5B',flex:'none'}}></span>
+                    <span style={{fontWeight:700,color:'#241A38'}}>Sunday long run</span> · {v.selWeek.long} + strides
+                  </div>
+                </div>
+
+                <div style={{gridColumn:'1/-1',display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:16}}>
+                  {v.mileageStats.map((s,i) => (
+                    <div key={i} style={{background:'#FFFFFF',border:'1px solid #E4DEF0',borderRadius:16,padding:18}}>
+                      <div style={{fontSize:13,color:'#7C7591',fontWeight:600}}>{s.label}</div>
+                      <div style={{fontFamily:"'Bricolage Grotesque'",fontSize:31,fontWeight:800,marginTop:5}}>{s.value}<span style={{fontSize:15,color:'#7C7591',fontWeight:600}}>{s.unit}</span></div>
+                      <div style={{fontSize:13,color:'#7C7591',marginTop:2}}>{s.sub}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{gridColumn:'1/-1',background:'#FFFFFF',border:'1px solid #E4DEF0',borderRadius:22,padding:24,boxShadow:'0 1px 2px rgba(36,26,56,.04), 0 10px 26px -18px rgba(36,26,56,.20)'}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+                    <div style={{fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:17}}>Weekly volume</div>
+                    <button onClick={v.openTargetModal} style={{fontSize:13,color:'#7C7591',display:'flex',alignItems:'center',gap:5}}>target {v.weekTarget} km <span style={{color:'#4B2E83',fontWeight:700}}>✎</span></button>
+                  </div>
+                  {v.weeklyChart}
+                </div>
+
+                <div style={{gridColumn:'1/-1',background:'#FFFFFF',border:'1px solid #E4DEF0',borderRadius:22,padding:24,boxShadow:'0 1px 2px rgba(36,26,56,.04), 0 10px 26px -18px rgba(36,26,56,.20)'}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8,flexWrap:'wrap',gap:6}}>
+                    <div style={{fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:17}}>Cross-training sessions</div>
+                    <div style={{display:'flex',alignItems:'center',gap:12}}>
+                      <div style={{fontSize:13,color:'#7C7591'}}>{v.crossTrainKm}km · {v.crossTrainMin} min this week</div>
+                      <button onClick={v.openCross} style={{fontSize:13,fontWeight:700,color:'#4B2E83',whiteSpace:'nowrap'}}>+ Add</button>
+                    </div>
+                  </div>
+                  {v.crossTrainLog.length===0 ? (
+                    <div style={{fontSize:13,color:'#9B93AE',padding:'10px 0'}}>Nothing yet — Strava rides &amp; ellipticals sync automatically, or tap + Add.</div>
+                  ) : (
+                    <div style={{display:'flex',flexDirection:'column'}}>
+                      {v.crossTrainLog.map((c,i) => (
+                        <div key={i} style={{display:'flex',alignItems:'center',gap:14,padding:'12px 0',borderBottom: i<v.crossTrainLog.length-1?'1px solid #ECE6F5':'none'}}>
+                          <div style={{width:42,flex:'none',textAlign:'center'}}>
+                            <div style={{fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:14}}>{c.dayLabel}</div>
+                            <div style={{fontSize:11,color:'#9B93AE'}}>{c.dateLabel}</div>
+                          </div>
+                          <span style={{padding:'4px 10px',borderRadius:999,fontSize:12,fontWeight:700,background:c.tagBg,color:c.tagColor,flex:'none'}}>{c.sport}</span>
+                          <div style={{flex:1,minWidth:0,fontSize:13,color:'#5B5470'}}>{c.km>0 ? c.km+' km · ' : ''}{c.min} min{c.manual ? '' : ' · Strava'}</div>
+                          {c.onDelete && <button onClick={c.onDelete} title="Delete session" style={{width:26,height:26,borderRadius:8,flex:'none',color:'#7C7591',fontSize:12}}>✕</button>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            )}
+
+            {v.isWeek && (
+              <div style={{display:'flex',flexDirection:'column',gap:16,animation:'fadeUp .45s ease both'}}>
+                <div style={{background:'#FFFFFF',border:'1px solid #E4DEF0',borderRadius:22,padding:24,boxShadow:'0 1px 2px rgba(36,26,56,.04), 0 10px 26px -18px rgba(36,26,56,.20)'}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8,flexWrap:'wrap',gap:6}}>
+                    <div>
+                      <div style={{fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:17}}>Week at a glance</div>
+                      <div style={{fontSize:13,color:'#7C7591',marginTop:2}}>{v.weekDone} of {v.weekTarget} km · {v.runsDone}/{v.runsPlanned} runs banked</div>
+                    </div>
+                    <div style={{fontSize:12,color:'#9B93AE',textAlign:'right'}}>drag ⠿ to move · ✎ edit · ✕ clear</div>
+                  </div>
+                  <div style={{display:'flex',flexDirection:'column'}}>
+                    {v.week.map((r,i) => (
+                      <div key={i} draggable onDragStart={r.onDragStart} onDragOver={r.onDragOver} onDrop={r.onDrop}
+                        style={{display:'flex',alignItems:'center',gap:14,padding:'14px 0',borderBottom: i<v.week.length-1?'1px solid #ECE6F5':'none',cursor:'grab'}}>
+                        <span style={{color:'#C7BFDE',fontSize:15,flex:'none',cursor:'grab'}}>⠿</span>
+                        <div style={{width:42,flex:'none',textAlign:'center'}}>
+                          <div style={{fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:14}}>{r.day}</div>
+                          <div style={{fontSize:11,color:'#9B93AE'}}>{r.dateShort}</div>
+                        </div>
+                        <span style={{padding:'4px 10px',borderRadius:999,fontSize:12,fontWeight:700,background:r.typeBg,color:r.typeColor,flex:'none'}}>{r.type}</span>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontWeight:700,fontSize:14}}>{r.headline}</div>
+                          <div style={{fontSize:13,color:'#7C7591'}}>{r.extras}</div>
+                        </div>
+                        {r.strength && <button onClick={r.onStrength} style={{width:30,height:30,borderRadius:9,flex:'none',background:'#f6e7de',color:'#c1663f',fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:13}}>{r.strength}</button>}
+                        <button onClick={r.onToggle} style={{width:28,height:28,borderRadius:'50%',flex:'none',border:'2px solid '+r.checkBorder,background:r.checkBg,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:15}}>{r.check}</button>
+                        <button onClick={r.onEdit} title="Edit session" style={{width:26,height:26,borderRadius:8,flex:'none',color:'#7C7591',fontSize:12}}>✎</button>
+                        <button onClick={r.onDelete} title="Clear session" style={{width:26,height:26,borderRadius:8,flex:'none',color:'#7C7591',fontSize:12}}>✕</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {v.isStrength && (
+              <div style={{animation:'fadeUp .45s ease both'}}>
+                <div style={{display:'flex',gap:9,marginBottom:18,flexWrap:'wrap'}}>
+                  {v.strengthTabs.map((t,i) => (
+                    <button key={i} onClick={t.onClick} style={cssToObj(t.style)}>
+                      <span style={{fontFamily:"'Bricolage Grotesque'",fontWeight:800,fontSize:15}}>{t.letter}</span>
+                      <span style={{fontSize:12,opacity:.8}}>{t.day}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <div style={{background:'#FFFFFF',border:'1px solid #E4DEF0',borderRadius:20,padding:26,maxWidth:640}}>
+                  <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12,marginBottom:6}}>
+                    <div>
+                      <div style={{display:'flex',alignItems:'center',gap:8}}>
+                        <h2 style={{margin:0,fontFamily:"'Bricolage Grotesque'",fontWeight:800,fontSize:26,letterSpacing:'-.02em'}}>{v.session.name}</h2>
+                        <button onClick={v.session.onEditMeta} title="Edit session" style={{color:'#7C7591',fontSize:14}}>✎</button>
+                      </div>
+                      <div style={{fontSize:14,color:'#7C7591',marginTop:3}}>{v.session.day} · {v.session.focus} · under 30 min</div>
+                    </div>
+                    <span style={{fontFamily:"'Bricolage Grotesque'",fontSize:14,color:'#4B2E83',fontWeight:700,flex:'none',paddingTop:6}}>{v.session.doneCount}/{v.session.total}</span>
+                  </div>
+
+                  {v.session.hasWarmup && (
+                    <div style={{marginTop:18,padding:'15px 17px',borderRadius:14,background:'#F5F1FB',border:'1px solid #E4DEF0'}}>
+                      <div style={{fontSize:12,fontWeight:700,color:'#7C7591',marginBottom:9}}>Warm-up · plyos for stiffness, not fatigue</div>
+                      <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+                        {v.session.warmup.map((w,i) => <span key={i} style={{fontSize:13,fontWeight:600,background:'#FFFFFF',border:'1px solid #E4DEF0',padding:'6px 11px',borderRadius:9}}>{w}</span>)}
+                      </div>
+                    </div>
+                  )}
+
+                  {v.session.shinNote && (
+                    <div style={{marginTop:14,padding:'12px 15px',borderRadius:13,background:'#eef6ef',border:'1px solid #d7ead9',fontSize:13,color:'#3f7a55'}}>{v.session.shinNote}</div>
+                  )}
+
+                  <div style={{marginTop:18,display:'flex',flexDirection:'column',gap:9}}>
+                    {v.session.lifts.map((l,i) => (
+                      <div key={i} style={{display:'flex',alignItems:'center',gap:14,padding:'15px 16px',borderRadius:14,background:l.bg,border:'1px solid '+l.border}}>
+                        <button onClick={l.onToggle} style={{width:26,height:26,borderRadius:'50%',flex:'none',border:'2px solid '+l.checkBorder,background:l.checkBg,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:14}}>{l.check}</button>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontWeight:700,fontSize:15,color:l.titleColor,textDecoration:l.strike}}>{l.n}</div>
+                          {l.meta && <div style={{fontSize:12,color:'#a07f56'}}>{l.meta}</div>}
+                        </div>
+                        <span style={{fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:15,color:'#4B2E83',flex:'none'}}>{l.s}</span>
+                        <button onClick={l.onEdit} title="Edit exercise" style={{width:24,height:24,borderRadius:7,flex:'none',color:'#9B93AE',fontSize:12}}>✎</button>
+                        <button onClick={l.onDelete} title="Remove exercise" style={{width:24,height:24,borderRadius:7,flex:'none',color:'#9B93AE',fontSize:12}}>✕</button>
+                      </div>
+                    ))}
+                    <button onClick={v.session.onAddLift} style={{textAlign:'left',fontSize:13,fontWeight:700,color:'#4B2E83',padding:'8px 16px'}}>+ Add exercise</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {v.isActivation && (
+              <div style={{display:'flex',flexDirection:'column',gap:16,animation:'fadeUp .45s ease both'}}>
+                <div style={{background:'#FFFFFF',border:'1px solid #E4DEF0',borderRadius:22,padding:24,boxShadow:'0 1px 2px rgba(36,26,56,.04), 0 10px 26px -18px rgba(36,26,56,.20)'}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4,flexWrap:'wrap',gap:6}}>
+                    <div style={{fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:17}}>Pre-run activation</div>
+                    <div style={{display:'flex',alignItems:'center',gap:12}}>
+                      <span style={{fontSize:13,color:'#7C7591'}}>{v.activationDoneCount}/{v.activationItems.length} done</span>
+                      <button onClick={v.resetActivation} style={{fontSize:13,fontWeight:700,color:'#4B2E83',whiteSpace:'nowrap'}}>Reset</button>
+                    </div>
+                  </div>
+                  <div style={{fontSize:13,color:'#7C7591',marginBottom:16,lineHeight:1.5}}>A quick dynamic warm-up to run through before easy runs, workouts, and races.</div>
+                  <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                    {v.activationItems.map((a,i) => (
+                      <div key={i} style={{display:'flex',gap:13,alignItems:'flex-start',padding:16,borderRadius:15,background:a.bg,border:'1.5px solid '+a.border}}>
+                        <button onClick={a.onToggle} style={{width:24,height:24,borderRadius:7,flex:'none',border:'2px solid '+a.checkBorder,background:a.checkBg,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:13,marginTop:1}}>{a.check}</button>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{display:'flex',alignItems:'baseline',gap:8,flexWrap:'wrap'}}>
+                            <span style={{fontWeight:700,fontSize:14}}>{a.name}</span>
+                            {a.reps && <span style={{fontSize:13,color:'#4B2E83',fontWeight:700}}>{a.reps}</span>}
+                          </div>
+                          <div style={{fontSize:13,color:'#7C7591',marginTop:2,lineHeight:1.45}}>{a.note}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {v.isRecovery && (
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(262px,1fr))',gap:16,animation:'fadeUp .45s ease both'}}>
+                {v.garminError && (
+                  <div style={{gridColumn:'1/-1',background:'#fdf2f0',border:'1px solid #f0c9c0',borderRadius:16,padding:'14px 18px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
+                    <div style={{fontSize:13,color:'#a1432f'}}>Garmin sync failed, showing manual data instead. If this persists, rerun <code>garmin_export.py</code> to refresh your saved session. <span style={{opacity:.75}}>({v.garminError})</span></div>
+                    <button onClick={v.retryGarmin} style={{background:'#a1432f',color:'#fff',fontWeight:700,fontSize:12,padding:'7px 13px',borderRadius:9,whiteSpace:'nowrap'}}>Retry</button>
+                  </div>
+                )}
+                <div style={{background:'#FFFFFF',border:'1px solid #E4DEF0',borderRadius:22,padding:24,boxShadow:'0 1px 2px rgba(36,26,56,.04), 0 10px 26px -18px rgba(36,26,56,.20)',display:'flex',alignItems:'center',gap:20}}>
+                  <div style={{position:'relative',flex:'none',width:122,height:122}}>
+                    {v.readyRingLg}
+                    <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
+                      <span style={{fontFamily:"'Bricolage Grotesque'",fontSize:35,fontWeight:800,color:v.recovery.color,lineHeight:1}}>{v.recovery.readiness}</span>
+                      <span style={{fontSize:11,color:'#7C7591'}}>readiness</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:19}}>{v.recovery.status}</div>
+                    <div style={{fontSize:14,color:'#5B5470',marginTop:6,maxWidth:230,lineHeight:1.55}}>{v.recovery.blurb}</div>
+                  </div>
+                </div>
+
+                <div style={{background:'#FFFFFF',border:'1px solid #E4DEF0',borderRadius:22,padding:24,boxShadow:'0 1px 2px rgba(36,26,56,.04), 0 10px 26px -18px rgba(36,26,56,.20)'}}>
+                  <div style={{fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:17,marginBottom:16}}>Today's signals</div>
+                  <div style={{display:'flex',flexDirection:'column',gap:15}}>
+                    {v.recoverySignals.map((g,i) => (
+                      <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                        <span style={{fontSize:14,color:'#5B5470'}}>{g.label}</span>
+                        <span style={{fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:16,color:g.color}}>{g.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{gridColumn:'1/-1',background:'#f9f0e2',border:'1px solid #eaddc4',borderRadius:20,padding:22,display:'flex',gap:15,alignItems:'flex-start'}}>
+                  <span style={{width:32,height:32,borderRadius:10,flex:'none',background:'#C9A227',display:'flex',alignItems:'center',justifyContent:'center'}}>{v.shinIcon}</span>
+                  <div>
+                    <div style={{fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:16,color:'#8a6414'}}>Shin watch · you know this one</div>
+                    <div style={{fontSize:14,color:'#7a6636',marginTop:5,lineHeight:1.55}}>{v.recovery.shinNote}</div>
+                    <button onClick={v.openCheckin} style={{marginTop:13,fontSize:13,fontWeight:700,color:'#4B2E83'}}>Log a check-in →</button>
+                  </div>
+                </div>
+
+                <div style={{gridColumn:'1/-1',background:'#FFFFFF',border:'1px solid #E4DEF0',borderRadius:22,padding:24,boxShadow:'0 1px 2px rgba(36,26,56,.04), 0 10px 26px -18px rgba(36,26,56,.20)'}}>
+                  <div style={{fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:17,marginBottom:8}}>Check-in history</div>
+                  {v.checkinLog.length===0 ? (
+                    <div style={{fontSize:13,color:'#9B93AE',padding:'8px 0'}}>No check-ins logged yet — use "Log a check-in" to start tracking shin status, sleep, and soreness over time.</div>
+                  ) : (
+                    <div style={{display:'flex',flexDirection:'column'}}>
+                      {v.checkinLog.map((c,i) => (
+                        <div key={i} style={{display:'flex',alignItems:'center',gap:14,padding:'12px 0',borderBottom: i<v.checkinLog.length-1?'1px solid #ECE6F5':'none'}}>
+                          <div style={{width:56,flex:'none',fontSize:13,color:'#7C7591'}}>{c.d}</div>
+                          <span style={{padding:'4px 10px',borderRadius:999,fontSize:12,fontWeight:700,background:c.shinBg,color:c.shinColor,flex:'none',whiteSpace:'nowrap'}}>{c.shinLabel}</span>
+                          <div style={{flex:1,minWidth:0,fontSize:13,color:'#5B5470'}}>{c.sleep}h sleep · {c.soreness} soreness</div>
+                          <div style={{fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:14,color:'#241A38',flex:'none'}}>{c.readiness}</div>
+                          <button onClick={c.onDelete} title="Remove entry" style={{width:22,height:22,borderRadius:7,flex:'none',color:'#9B93AE',fontSize:11}}>✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {v.isNutrition && (
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(262px,1fr))',gap:16,animation:'fadeUp .45s ease both'}}>
+                <div style={{gridColumn:'1/-1',background:'#FFFFFF',border:'1px solid #E4DEF0',borderRadius:22,padding:24,boxShadow:'0 1px 2px rgba(36,26,56,.04), 0 10px 26px -18px rgba(36,26,56,.20)'}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16,flexWrap:'wrap',gap:6}}>
+                    <div style={{fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:17}}>Supplements today</div>
+                    <div style={{display:'flex',alignItems:'center',gap:12}}>
+                      <span style={{fontSize:13,color:'#7C7591'}}>{v.suppsDone}/{v.suppList.length} taken</span>
+                      <button onClick={v.openAddSupp} style={{fontSize:13,fontWeight:700,color:'#4B2E83',whiteSpace:'nowrap'}}>+ Add</button>
+                    </div>
+                  </div>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12}}>
+                    {v.suppList.map((s,i) => (
+                      <div key={i} style={{display:'flex',gap:13,alignItems:'flex-start',padding:16,borderRadius:15,background:s.bg,border:'1.5px solid '+s.border}}>
+                        <button onClick={s.onToggle} style={{width:24,height:24,borderRadius:7,flex:'none',border:'2px solid '+s.checkBorder,background:s.checkBg,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:13,marginTop:1}}>{s.check}</button>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontWeight:700,fontSize:14}}>{s.name}</div>
+                          <div style={{fontSize:13,color:'#7C7591',marginTop:2,lineHeight:1.45}}>{s.note}</div>
+                        </div>
+                        <button onClick={s.onDelete} title="Remove supplement" style={{width:22,height:22,borderRadius:7,flex:'none',color:'#9B93AE',fontSize:11,marginTop:1}}>✕</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {v.isWeight && (
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(262px,1fr))',gap:16,animation:'fadeUp .45s ease both'}}>
+                <div style={{gridColumn:'1/-1',display:'flex',justifyContent:'flex-end'}}>
+                  <button onClick={v.openWeightGoalModal} style={{fontSize:13,color:'#7C7591',display:'flex',alignItems:'center',gap:5}}>goal {v.weightGoal} lb <span style={{color:'#4B2E83',fontWeight:700}}>✎</span></button>
+                </div>
+                {!v.hasWeightData ? (
+                  <div style={{gridColumn:'1/-1',background:'#FFFFFF',border:'1px solid #E4DEF0',borderRadius:20,padding:32,textAlign:'center'}}>
+                    <div style={{fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:17,marginBottom:6}}>No weigh-ins yet</div>
+                    <div style={{fontSize:14,color:'#7C7591',marginBottom:16}}>Log your first entry to start tracking — target is {v.weightGoal} lb.</div>
+                    <button onClick={v.openPrimary} style={{background:'#4B2E83',color:'#fff',fontWeight:600,fontSize:14,padding:'11px 18px',borderRadius:12}}>+ Log weight</button>
+                  </div>
+                ) : (<>
+                <div style={{gridColumn:'1/-1',display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:16}}>
+                  {v.weightStats.map((s,i) => (
+                    <div key={i} style={{background:'#FFFFFF',border:'1px solid #E4DEF0',borderRadius:16,padding:18}}>
+                      <div style={{fontSize:13,color:'#7C7591',fontWeight:600}}>{s.label}</div>
+                      <div style={{fontFamily:"'Bricolage Grotesque'",fontSize:31,fontWeight:800,marginTop:5,color:s.color}}>{s.value}<span style={{fontSize:15,color:'#7C7591',fontWeight:600}}>{s.unit}</span></div>
+                      <div style={{fontSize:13,color:'#7C7591',marginTop:2}}>{s.sub}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{gridColumn:'1/-1',background:'#FFFFFF',border:'1px solid #E4DEF0',borderRadius:22,padding:24,boxShadow:'0 1px 2px rgba(36,26,56,.04), 0 10px 26px -18px rgba(36,26,56,.20)'}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+                    <div style={{fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:17}}>Weight over time</div>
+                    <div style={{display:'flex',gap:14,fontSize:12}}>
+                      <span style={{display:'inline-flex',alignItems:'center',gap:5,color:'#7C7591'}}><span style={{width:14,height:2,background:'#4B2E83',display:'inline-block'}}></span>weight</span>
+                      <span style={{display:'inline-flex',alignItems:'center',gap:5,color:'#7C7591'}}><span style={{width:14,height:0,borderTop:'2px dashed #2F8F5B',display:'inline-block'}}></span>goal</span>
+                    </div>
+                  </div>
+                  {v.weightChart}
+                </div>
+                <div style={{gridColumn:'1/-1',background:'#FFFFFF',border:'1px solid #E4DEF0',borderRadius:22,padding:24,boxShadow:'0 1px 2px rgba(36,26,56,.04), 0 10px 26px -18px rgba(36,26,56,.20)'}}>
+                  <div style={{fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:17,marginBottom:10}}>Recent entries</div>
+                  <div style={{display:'flex',flexDirection:'column'}}>
+                    {v.weightLog.map((w,i) => (
+                      <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 0',borderBottom:'1px solid #ECE6F5'}}>
+                        <span style={{fontSize:14,color:'#7C7591'}}>{w.d}</span>
+                        <span style={{fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:16}}>{w.lb} lb</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                </>)}
+              </div>
+            )}
+
+
+            {v.isRaces && (
+              <div style={{display:'flex',flexDirection:'column',gap:16,animation:'fadeUp .45s ease both'}}>
+                <div style={{background:'#FFFFFF',border:'1px solid #E4DEF0',borderRadius:22,padding:24,boxShadow:'0 1px 2px rgba(36,26,56,.04), 0 10px 26px -18px rgba(36,26,56,.20)'}}>
+                  <div style={{fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:17,marginBottom:16}}>Race season</div>
+                  <div style={{display:'flex',flexDirection:'column'}}>
+                    {v.races.map((r,i) => (
+                      <div key={i} style={{display:'flex',alignItems:'center',gap:16,padding:'16px 0',borderBottom: i<v.races.length-1 ? '1px solid #ECE6F5' : 'none', opacity: (r.isPast && !r.result) ? .55 : 1}}>
+                        <div style={{width:60,flex:'none',textAlign:'center'}}>
+                          <div style={{fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:14}}>{r.dateLabel}</div>
+                          <div style={{fontSize:11,color:'#9B93AE'}}>{r.day}</div>
+                        </div>
+                        <span style={{padding:'4px 10px',borderRadius:999,fontSize:11,fontWeight:700,background:r.tagBg,color:r.tagColor,flex:'none',whiteSpace:'nowrap'}}>{r.tag}</span>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontWeight:700,fontSize:15}}>{r.sub ? r.sub+' ' : ''}{r.label}</div>
+                          <div style={{fontSize:13,color:'#7C7591'}}>{r.location}</div>
+                          {r.result && (
+                            <div style={{fontSize:13,fontWeight:700,color:r.resultColor,marginTop:4}}>
+                              {r.result.time}{r.result.place ? ' · ' + r.result.place : ''}
+                              {r.result.note ? <span style={{color:'#7C7591',fontWeight:500}}>{' — ' + r.result.note}</span> : null}
+                            </div>
+                          )}
+                        </div>
+                        <div style={{display:'flex',alignItems:'center',gap:4,flex:'none'}}>
+                          {r.isPast && (
+                            <button onClick={r.onLogResult} title={r.result ? 'Edit result' : 'Log result'} style={{width:28,height:28,borderRadius:8,fontSize:13,color: r.result?r.resultColor:'#7C7591'}}>⏱</button>
+                          )}
+                          <button onClick={r.onSetGoal} title="Set as goal race" style={{width:28,height:28,borderRadius:8,fontSize:15,color: r.isGoal?'#C9A227':'#D6CCE8'}}>{r.isGoal?'★':'☆'}</button>
+                          <button onClick={r.onEdit} title="Edit race" style={{width:28,height:28,borderRadius:8,color:'#7C7591',fontSize:13}}>✎</button>
+                          <button onClick={r.onDelete} title="Delete race" style={{width:28,height:28,borderRadius:8,color:'#7C7591',fontSize:13}}>✕</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+          </main>
+        </div>
+
+        {v.isNarrow && (
+          <nav style={{position:'sticky',bottom:0,zIndex:20,display:'flex',justifyContent:'space-between',padding:'8px 6px 10px',background:'rgba(255,255,255,.95)',backdropFilter:'blur(10px)',borderTop:'1px solid #E4DEF0'}}>
+            {v.nav.map((item,i) => (
+              <button key={i} onClick={item.onClick} style={cssToObj(item.tabStyle)}>
+                <span style={{display:'flex',width:21,height:21,alignItems:'center',justifyContent:'center'}}>{item.icon}</span>
+                <span style={{fontSize:9.5,fontWeight:600}}>{item.label}</span>
+              </button>
+            ))}
+          </nav>
+        )}
+
+        {v.modal && (
+          <div onClick={v.closeModal} style={{position:'fixed',inset:0,zIndex:40,background:'rgba(36,26,56,.45)',backdropFilter:'blur(3px)',display:'flex',alignItems:'flex-end',justifyContent:'center',animation:'overlayIn .2s ease'}}>
+            <div onClick={v.stop} style={{background:'#FFFFFF',width:'100%',maxWidth:440,borderRadius:'22px 22px 0 0',padding:26,animation:'sheetIn .28s cubic-bezier(.2,.8,.2,1)'}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
+                <h2 style={{margin:0,fontFamily:"'Bricolage Grotesque'",fontSize:21,fontWeight:800}}>{v.modalTitle}</h2>
+                <button onClick={v.closeModal} style={{width:32,height:32,borderRadius:10,background:'#ECE6F5',color:'#7C7591',fontSize:16}}>✕</button>
+              </div>
+              <div style={{display:'flex',flexDirection:'column',gap:14}}>
+                {v.formFields.map((f,i) => (
+                  <label key={i} style={{display:'block'}}>
+                    <span style={{display:'block',fontSize:13,fontWeight:600,color:'#5B5470',marginBottom:6}}>{f.label}</span>
+                    {f.isSelect ? (
+                      <select value={f.value} onChange={f.onChange} style={{width:'100%',padding:'12px 13px',borderRadius:12,border:'1.5px solid #E4DEF0',fontSize:15,background:'#fff',color:'#241A38'}}>
+                        {f.options.map((o,oi) => <option key={oi} value={o}>{o}</option>)}
+                      </select>
+                    ) : (
+                      <input value={f.value} onChange={f.onChange} type={f.type} placeholder={f.placeholder} style={{width:'100%',padding:'12px 13px',borderRadius:12,border:'1.5px solid #E4DEF0',fontSize:15,color:'#241A38'}} />
+                    )}
+                  </label>
+                ))}
+              </div>
+              <button onClick={v.submitModal} style={{width:'100%',marginTop:22,background:'#4B2E83',color:'#fff',fontWeight:600,fontSize:15,padding:15,borderRadius:14,boxShadow:'0 8px 18px -8px rgba(75,46,131,.35)'}}>{v.submitLabel}</button>
+            </div>
+          </div>
+        )}
+
+      </div>
+    );
+  }
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+<script>
+(function () {
+  const src = document.getElementById('app-source').textContent;
+  const compiled = Babel.transform(src, { presets: [['react', { runtime: 'classic' }]] }).code;
+  (0, eval)(compiled);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+.env
+.strava-tokens.json
+.garmin-cache.json
+__pycache__/
+*.log
+.DS_Store
