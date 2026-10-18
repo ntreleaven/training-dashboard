@@ -33,7 +33,7 @@ input,select{font-family:inherit}
 const STORAGE_KEY = 'xc-training-dashboard-v1';
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const PROGRAM_START_ISO = '2026-09-07';
-const PLAN_VERSION = 'xc-fall-2026-w1-6';
+const PLAN_VERSION = 'xc-fall-2026-w1-8';
 const WEEK_TEMPLATE = [
   { day:'Mon', type:'Easy', km:13, strides:true, core:false, strength:'A' },
   { day:'Tue', type:'Easy', km:11, strides:true, core:true,  strength:null },
@@ -98,6 +98,24 @@ const WEEKLY_TEMPLATES = {
     { day:'Fri', type:'Workout', km:8,  strides:false, core:false, strength:null },
     { day:'Sat', type:'Easy',    km:10, strides:true,  core:true,  strength:null },
     { day:'Sun', type:'Easy',    km:12, strides:true,  core:false, strength:null },
+  ],
+  7: [
+    { day:'Mon', type:'Easy',    km:12, strides:true,  core:false, strength:'A' },
+    { day:'Tue', type:'Workout', km:14, strides:true,  core:false, strength:null },
+    { day:'Wed', type:'Easy',    km:12, strides:true,  core:false, strength:'B' },
+    { day:'Thu', type:'Rest',    km:0,  strides:false, core:false, strength:null },
+    { day:'Fri', type:'Workout', km:13, strides:true,  core:false, strength:null },
+    { day:'Sat', type:'Long',    km:17, strides:true,  core:true,  strength:null },
+    { day:'Sun', type:'Easy',    km:12, strides:true,  core:false, strength:null },
+  ],
+  8: [
+    { day:'Mon', type:'Workout', km:12, strides:true,  core:false, strength:'A' },
+    { day:'Tue', type:'Easy',    km:12, strides:true,  core:false, strength:null },
+    { day:'Wed', type:'Workout', km:11, strides:true,  core:false, strength:'B' },
+    { day:'Thu', type:'Rest',    km:0,  strides:false, core:false, strength:null },
+    { day:'Fri', type:'Easy',    km:6,  strides:false, core:false, strength:null },
+    { day:'Sat', type:'Workout', km:8,  strides:true,  core:false, strength:null },
+    { day:'Sun', type:'Rest',    km:0,  strides:false, core:false, strength:null },
   ],
 };
 const PRESC = { Easy:'50–70 min easy', Long:'70–80 min long', Rest:'Rest from running', Workout:'Quality workout', 'Cross train':'Cross-training' };
@@ -257,8 +275,14 @@ const defaultState = {
     6: { phase:'Race & Maintain', note:'Hamilton week — Thanksgiving Monday off, aerobic power shifts to Tuesday, then race 8K Friday at Christie Lake (OUA & U SPORTS selection race).', long:'75–90 min long (Sat, coach’s call after Friday’s race)', key:[
       {id:'0', day:'Tue', name:'Aerobic Power', presc:'4 × 5 min / 3:30 min jog', pace:'3:40–4:05/km'},
       {id:'1', day:'Fri', name:'Hamilton Invitational', presc:'Race — 8 km at Christie Lake (OUA & U SPORTS selection race)', pace:'Full effort'} ] },
-    7: { phase:'TBD', note:'Guy’s plan runs through Oct 18 (week 6) — no workouts provided yet beyond that. Check with him closer to the date.', long:'—', key:[] },
-    8: { phase:'TBD', note:'Guy’s plan runs through Oct 18 (week 6) — no workouts provided yet beyond that. Check with him closer to the date.', long:'—', key:[] },
+    7: { phase:'Sharpen', note:'Sharpen week — threshold ladder Tuesday at the soccer fields, Mustang Mile aerobic power Friday on the track (Medway or Western), long run Saturday. Wed easy is with the team at WAS 4:30pm + mobility. Thu rest or easy.', long:'75–90 min long + core (Sat)', key:[
+      {id:'0', day:'Tue', name:'Threshold / Tempo', presc:'10 min / 2 min jog / 6 min / 1 min jog / 2–3 × 5 min / 1 min jog', pace:'3:50–4:15/km'},
+      {id:'1', day:'Fri', name:'Aerobic Power — Mustang Mile', presc:'Mile @ 8K XC pace / 1.2k tempo / 1200 m @ 5K pace / 1.2k tempo / 800 m @ 3K pace / 1.2k tempo / 400 m all-out, 2 min rest between', pace:'Race paces on track · tempo 3:50–4:15/km'},
+      {id:'2', day:'Sat', name:'Long Run', presc:'75–90 min easy + 4–6 × 100 m strides + core', pace:'Easy'} ] },
+    8: { phase:'OUA Tune Up', note:'OUA Championship week — short aerobic power Monday, light threshold Wednesday, Thu rest or easy, race warm-up Friday, race 8K Saturday at Malden Park, Windsor (Peak #1). Sun rest or easy. If not racing OUA: 10–11 × 2 min Mon, 5–6 × 5 min Wed, and Sat long run + threshold instead.', long:'No long run — Saturday’s 8K is the effort (if not racing: 75–85 min with 30–35 min threshold @ 4:05–4:25/km)', key:[
+      {id:'0', day:'Mon', name:'Aerobic Power', presc:'8–9 × 2 min / 1 min jog', pace:'3:40–4:05/km'},
+      {id:'1', day:'Wed', name:'Threshold / Tempo', presc:'2–3 × 5 min / 1 min jog', pace:'3:50–4:15/km'},
+      {id:'2', day:'Sat', name:'OUA Championships', presc:'Race — 8 km at Malden Park, Windsor (Peak #1)', pace:'Full effort'} ] },
   },
   recovery: { readiness:82, sleep:7.8, soreness:'Low', shin:'clear' },
   checkinLog: [],
