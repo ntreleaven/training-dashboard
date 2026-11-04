@@ -819,6 +819,7 @@ class App extends React.Component {
     const programMonday = mondayOf(new Date(S.programStart + 'T00:00:00'));
     const curWeekNum = weekNumberFor(mondayOf(new Date()), S.programStart);
     const phaseNow = { w: curWeekNum, phase: S.workouts[curWeekNum].phase };
+    const keyFor = (r) => ((S.workouts[curWeekNum]||{}).key||[]).find(k => k.day === r.day && (r.type==='Workout' || r.type==='Long'));
     const sel = S.selectedWeek;
     const phases = Array.from({length:10}, (_,i) => i+1).map(w => {
       const short = shortDate(addDays(programMonday, (w-1)*7)).replace(' ','');
@@ -911,7 +912,8 @@ class App extends React.Component {
       const durationOnly = t.presc.replace(' easy','').replace(' long','');
       todayItems.push(mkToday('run','RUN', BLUE, t.type+' run · '+durationOnly, t.strides ? 'Conversational pace, then 4–6 × 100 m strides' : 'Steady effort throughout.'));
     } else if (t.type === 'Workout') {
-      todayItems.push(mkToday('run','WORKOUT', CLAY, 'Quality workout', 'Check the plan for today’s specifics.'));
+      const k = keyFor(t);
+      todayItems.push(mkToday('run','WORKOUT', CLAY, k ? k.name : 'Quality workout', k ? k.presc + (k.pace ? ' @ ' + k.pace : '') : 'Check the plan for today’s specifics.'));
     } else if (t.type === 'Cross train') {
       todayItems.push(mkToday('run','CROSS', '#7a5cc4', 'Cross-training', 'Bike, elliptical, or swim — keep it low impact.'));
     }
@@ -954,7 +956,8 @@ class App extends React.Component {
       const stravaNote = r.crossTrain ? `· cross-trained (${r.crossTrain.sport} ${r.crossTrain.km}km)` : (r.stravaId ? '· synced from Strava' : null);
       const extras = [ r.strides?'+ strides':null, r.core?'+ core':null, stravaNote ].filter(Boolean).join('  ');
       return { id:r.id, day:r.day, dateShort:r.date.split(' ')[1], type:r.type, typeBg:tc.bg, typeColor:tc.c,
-        headline: r.presc, extras: extras||'—', strength:r.strength, onStrength: r.strength?(()=>this.openStrength(r.strength)):null,
+        headline: (r.presc===PRESC[r.type] && keyFor(r)) ? keyFor(r).name : r.presc,
+        detail: (r.presc===PRESC[r.type] && keyFor(r)) ? keyFor(r).presc : null, extras: extras||'—', strength:r.strength, onStrength: r.strength?(()=>this.openStrength(r.strength)):null,
         onToggle:()=>this.toggleRun(r.id), check: done?'✓':(r.status==='today'?'•':''),
         checkBorder: done?GREEN:(r.status==='today'?BLUE:'#D6CCE8'), checkBg: done?GREEN:(r.status==='today'?BLUE:'#fff'),
         onEdit: ()=>this.openModal('session', r),
@@ -971,13 +974,13 @@ class App extends React.Component {
     ];
     const maxKm = Math.max(...S.weeks.map(w=>Math.max(w.km, w.target||0)), 1);
     const cW=560,cH=140,n=S.weeks.length,bw=Math.min(46,(cW/n)*0.5),gap=(cW-n*bw)/(n-1);
-    const buildWeeklyChart = () => h('svg',{viewBox:`0 0 ${cW} ${cH+22}`,width:'100%',style:{display:'block'}},
+    const buildWeeklyChart = () => h('svg',{viewBox:`0 -20 ${cW} ${cH+42}`,width:'100%',style:{display:'block',maxHeight:260}},
       S.weeks.map((w,i)=>{ const bh=(w.km/maxKm)*cH; const x=i*(bw+gap); const y=cH-bh;
         const ty = cH-((w.target||0)/maxKm)*cH;
         return h('g',{key:i, onClick:()=>this.openModal('target',{label:w.l,target:w.target}), style:{cursor:'pointer'}},
           h('title',null,'Click to edit this week’s target'),
-          w.target ? h('line',{x1:x,y1:ty,x2:x+bw,y2:ty,stroke:GREEN,strokeDasharray:'3 3',strokeWidth:1.5}) : null,
           h('rect',{x,y,width:bw,height:bh,rx:6,fill:w.current?BLUE:'#DAD3EC'}),
+          w.target ? h('line',{x1:x-4,y1:ty,x2:x+bw+4,y2:ty,stroke:GREEN,strokeDasharray:'3 3',strokeWidth:1.5}) : null,
           h('text',{x:x+bw/2,y:y-6,textAnchor:'middle',fontSize:12,fontFamily:'Bricolage Grotesque',fontWeight:700,fill:w.current?BLUE:'#7C7591'},w.km),
           h('text',{x:x+bw/2,y:cH+16,textAnchor:'middle',fontSize:10,fontFamily:'Hanken Grotesk',fill:'#9B93AE'},w.l));
       }));
@@ -1151,7 +1154,7 @@ class App extends React.Component {
       workoutMeta:{ title:'Edit Week '+(S.form.weekNum||''), submit:'Save week', fields:[
         {key:'phase',label:'Phase',isSelect:true,options:['Transition','Build','Adaptation','Camp']},
         {key:'note',label:'Note',isInput:true,type:'text',placeholder:'e.g. Ease into the reps.'},
-        {key:'long',label:'Sunday long run',isInput:true,type:'text',placeholder:'e.g. 80–90 min long'},
+        {key:'long',label:'Long run',isInput:true,type:'text',placeholder:'e.g. 80–90 min long'},
       ]},
       keySession:{ title: S.form.sessionId?'Edit key session':'Add key session', submit: S.form.sessionId?'Save session':'Add session', fields:[
         {key:'day',label:'Day',isSelect:true,options:['Mon','Tue','Wed','Thu','Fri','Sat','Sun']},
@@ -1373,7 +1376,7 @@ class App extends React.Component {
                       <div style={{fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:17}}>The 10-week arc</div>
                       <button onClick={v.openProgramSettings} title="Edit program start date" style={{color:'#7C7591',fontSize:13}}>✎</button>
                     </div>
-                    <div style={{fontSize:13,color:'#5B5470'}}>You're in <span style={{color:'#c1663f',fontWeight:700}}>Week {v.phaseNow.w} · {v.phaseNow.phase}</span> — quality work starts Week 3.</div>
+                    <div style={{fontSize:13,color:'#5B5470'}}>You're in <span style={{color:'#c1663f',fontWeight:700}}>Week {v.phaseNow.w} · {v.phaseNow.phase}</span> — {v.race.days} days to {v.race.name}.</div>
                   </div>
                   <div style={{display:'flex',gap:6,alignItems:'flex-end'}}>
                     {v.phases.map((p,i) => (
@@ -1415,7 +1418,7 @@ class App extends React.Component {
                   <button onClick={v.selWeek.onAddKey} style={{marginTop:12,fontSize:13,fontWeight:700,color:'#4B2E83'}}>+ Add key session</button>
                   <div style={{marginTop:14,display:'flex',alignItems:'center',gap:10,fontSize:13,color:'#5B5470'}}>
                     <span style={{width:9,height:9,borderRadius:'50%',background:'#2F8F5B',flex:'none'}}></span>
-                    <span style={{fontWeight:700,color:'#241A38'}}>Sunday long run</span> · {v.selWeek.long} + strides
+                    <span style={{fontWeight:700,color:'#241A38'}}>Long run</span> · {v.selWeek.long}
                   </div>
                 </div>
 
@@ -1480,15 +1483,17 @@ class App extends React.Component {
                   <div style={{display:'flex',flexDirection:'column'}}>
                     {v.week.map((r,i) => (
                       <div key={i} draggable onDragStart={r.onDragStart} onDragOver={r.onDragOver} onDrop={r.onDrop}
-                        style={{display:'flex',alignItems:'center',gap:14,padding:'14px 0',borderBottom: i<v.week.length-1?'1px solid #ECE6F5':'none',cursor:'grab'}}>
-                        <span style={{color:'#C7BFDE',fontSize:15,flex:'none',cursor:'grab'}}>⠿</span>
+                        style={{display:'flex',alignItems:'center',gap:v.isNarrow?8:14,padding:'14px 0',borderBottom: i<v.week.length-1?'1px solid #ECE6F5':'none',cursor:'grab'}}>
+                        {!v.isNarrow && <span style={{color:'#C7BFDE',fontSize:15,flex:'none',cursor:'grab'}}>⠿</span>}
                         <div style={{width:42,flex:'none',textAlign:'center'}}>
                           <div style={{fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:14}}>{r.day}</div>
                           <div style={{fontSize:11,color:'#9B93AE'}}>{r.dateShort}</div>
                         </div>
-                        <span style={{padding:'4px 10px',borderRadius:999,fontSize:12,fontWeight:700,background:r.typeBg,color:r.typeColor,flex:'none'}}>{r.type}</span>
+                        {!v.isNarrow && <span style={{padding:'4px 10px',borderRadius:999,fontSize:12,fontWeight:700,background:r.typeBg,color:r.typeColor,flex:'none'}}>{r.type}</span>}
                         <div style={{flex:1,minWidth:0}}>
+                          {v.isNarrow && <span style={{display:'inline-block',marginBottom:4,padding:'2px 8px',borderRadius:999,fontSize:11,fontWeight:700,background:r.typeBg,color:r.typeColor}}>{r.type}</span>}
                           <div style={{fontWeight:700,fontSize:14}}>{r.headline}</div>
+                          {r.detail && <div style={{fontSize:13,color:'#5B5470',lineHeight:1.4,margin:'2px 0'}}>{r.detail}</div>}
                           <div style={{fontSize:13,color:'#7C7591'}}>{r.extras}</div>
                         </div>
                         {r.strength && <button onClick={r.onStrength} style={{width:30,height:30,borderRadius:9,flex:'none',background:'#f6e7de',color:'#c1663f',fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:13}}>{r.strength}</button>}
