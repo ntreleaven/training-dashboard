@@ -33,7 +33,7 @@ input,select{font-family:inherit}
 const STORAGE_KEY = 'xc-training-dashboard-v1';
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const PROGRAM_START_ISO = '2026-09-07';
-const PLAN_VERSION = 'xc-fall-2026-w1-10b';
+const PLAN_VERSION = 'xc-fall-2026-w1-10c';
 const WEEK_TEMPLATE = [
   { day:'Mon', type:'Easy', km:13, strides:true, core:false, strength:'A' },
   { day:'Tue', type:'Easy', km:11, strides:true, core:true,  strength:null },
@@ -118,20 +118,20 @@ const WEEKLY_TEMPLATES = {
     { day:'Sun', type:'Rest',    km:0,  strides:false, core:false, strength:null },
   ],
   9: [
-    { day:'Mon', type:'Easy',    km:12, strides:true,  core:false, strength:'A' },
+    { day:'Mon', type:'Easy',    presc:'55–70 min easy', km:12, strides:true,  core:false, strength:'A' },
     { day:'Tue', type:'Workout', km:14, strides:true,  core:false, strength:null },
-    { day:'Wed', type:'Easy',    km:12, strides:true,  core:false, strength:'B' },
+    { day:'Wed', type:'Easy',    presc:'55–70 min easy', km:12, strides:true,  core:false, strength:'B' },
     { day:'Thu', type:'Rest',    km:0,  strides:false, core:false, strength:null },
     { day:'Fri', type:'Workout', km:14, strides:true,  core:false, strength:null },
     { day:'Sat', type:'Long',    km:14, strides:true,  core:true,  strength:null },
-    { day:'Sun', type:'Easy',    km:12, strides:true,  core:false, strength:null },
+    { day:'Sun', type:'Easy',    presc:'55–70 min easy', km:12, strides:true,  core:false, strength:null },
   ],
   10: [
     { day:'Mon', type:'Workout', km:12, strides:true,  core:false, strength:'A' },
-    { day:'Tue', type:'Easy',    km:12, strides:true,  core:true,  strength:null },
+    { day:'Tue', type:'Easy',    presc:'55–70 min easy', km:12, strides:true,  core:true,  strength:null },
     { day:'Wed', type:'Workout', km:11, strides:true,  core:false, strength:'B' },
     { day:'Thu', type:'Rest',    km:0,  strides:false, core:false, strength:null },
-    { day:'Fri', type:'Easy',    km:6,  strides:true,  core:false, strength:null },
+    { day:'Fri', type:'Easy',    presc:'Race-day warm-up', km:6,  strides:true,  core:false, strength:null },
     { day:'Sat', type:'Workout', km:8,  strides:false, core:false, strength:null },
     { day:'Sun', type:'Rest',    km:0,  strides:false, core:false, strength:null },
   ],
@@ -175,7 +175,7 @@ function generateWeek(monday, todayIso, weekNum) {
     const iso = isoDate(d);
     return {
       id: i+1, day: t.day, date: shortDate(d), iso,
-      type: t.type, presc: PRESC[t.type], km: t.km,
+      type: t.type, presc: t.presc || PRESC[t.type], km: t.km,
       strides: t.strides, core: t.core, strength: t.strength,
       status: iso === todayIso ? 'today' : 'upcoming',
       stravaId: null,
@@ -301,13 +301,13 @@ const defaultState = {
       {id:'0', day:'Mon', name:'Aerobic Power', presc:'8–9 × 2 min / 1 min jog', pace:'3:40–4:05/km'},
       {id:'1', day:'Wed', name:'Threshold / Tempo', presc:'2–3 × 5 min / 1 min jog', pace:'3:50–4:15/km'},
       {id:'2', day:'Sat', name:'OUA Championships', presc:'Race — 8 km at Malden Park, Windsor (Peak #1)', pace:'Full effort'} ] },
-    9: { phase:'Confidence-Maintain', note:'Post-OUA confidence week — threshold ladder Tuesday at the soccer fields, cut-down 1k’s Friday on the Western outdoor track, short long run Saturday (if racing U SPORTS). Wed easy is with the team at WAS 4:30pm + mobility. Thu rest. Drills + strides before each workout, 4–6 × 100 m after.', long:'Short long run + core (Sat) if racing U SPORTS · if not: 75–90 min', key:[
-      {id:'0', day:'Tue', name:'Threshold / Tempo', presc:'12 min / 1:30 jog / 10 min / 1:30 jog / 8 min (FY: last rep 5 min)', pace:'3:50–4:05/km (G1) · 4:05–4:15/km (G2)'},
-      {id:'1', day:'Fri', name:'Aerobic Power — Cut-down 1k’s', presc:'8 × 1 km cut-down / 2 min rest, then 5 min rest + 4–6 × 30 sec / 1 min rest', pace:'Start 3:50/km (G1) or 4:00/km (G2), cut 3 s/km each rep · 30s @ 800–1500 m pace'},
-      {id:'2', day:'Sat', name:'Long Run', presc:'Short long run if racing U SPORTS (otherwise 75–90 min) + 4–6 × 100 m strides + core', pace:'Easy'} ] },
-    10: { phase:'U SPORTS Tune Up', note:'U SPORTS Championship week — championship sharpening Monday, light threshold Wednesday, Tue easy at WAS 4:30pm + drills, mobility & core. Thu rest, race warm-up Friday, race 8K Saturday at Christie Lake, Dundas (Peak #2). Sun rest. If not racing U SPORTS: same Mon session, 5–6 × 5 min Wed, easy 55–70 min Fri.', long:'No long run — Saturday’s 8K is the effort', key:[
-      {id:'0', day:'Mon', name:'Aerobic Power — Championship Sharpening', presc:'4 × (3 min / 2 min jog / 1 min / 1 min jog / 1 min), 3 min rest between sets', pace:'3:30–3:45/km (G1) · 3:45–3:55/km (G2)'},
-      {id:'1', day:'Wed', name:'Threshold / Tempo', presc:'2–3 × 5 min / 1 min jog', pace:'3:50–4:05/km (G1) · 4:05–4:15/km (G2)'},
+    9: { phase:'Confidence-Maintain', note:'Post-OUA confidence week (V · Group 1) — threshold ladder Tuesday at the soccer fields, cut-down 1k’s Friday on the Western outdoor track, short long run Saturday. Easy runs 55–70 min; Wed easy is with the team at WAS 4:30pm + mobility. Thu rest. Drills + strides before each workout, 4–6 × 100 m after.', long:'Short long run + 4–6 × 100 m strides + core (Sat)', key:[
+      {id:'0', day:'Tue', name:'Threshold / Tempo', presc:'12 min / 1:30 jog / 10 min / 1:30 jog / 8 min', pace:'3:50–4:05/km'},
+      {id:'1', day:'Fri', name:'Aerobic Power — Cut-down 1k’s', presc:'8 × 1 km cut-down / 2 min rest, then 5 min rest + 4–6 × 30 sec / 1 min rest', pace:'Start 3:50/km, cut 3 s/km each rep (→ ~3:29 on #8) · 30s @ 800–1500 m pace'},
+      {id:'2', day:'Sat', name:'Short Long Run', presc:'Short long run + 4–6 × 100 m strides + core', pace:'Easy'} ] },
+    10: { phase:'U SPORTS Tune Up', note:'U SPORTS Championship week (V · Group 1) — championship sharpening Monday, Tue easy 55–70 min at WAS 4:30pm + drills, strides, mobility & core, light threshold Wednesday. Thu rest, race-day warm-up Friday, race 8K Saturday at Christie Lake, Dundas (Peak #2). Sun rest.', long:'No long run — Saturday’s 8K is the effort', key:[
+      {id:'0', day:'Mon', name:'Aerobic Power — Championship Sharpening', presc:'4 × (3 min / 2 min jog / 1 min / 1 min jog / 1 min), 3 min rest between sets', pace:'3:30–3:45/km'},
+      {id:'1', day:'Wed', name:'Threshold / Tempo', presc:'2–3 × 5 min / 1 min jog', pace:'3:50–4:05/km'},
       {id:'2', day:'Sat', name:'U SPORTS Championships', presc:'Race — 8 km at Christie Lake Conservation Area, Dundas (Peak #2)', pace:'Full effort'} ] },
   },
   recovery: { readiness:82, sleep:7.8, soreness:'Low', shin:'clear' },
