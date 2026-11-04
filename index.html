@@ -33,7 +33,7 @@ input,select{font-family:inherit}
 const STORAGE_KEY = 'xc-training-dashboard-v1';
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const PROGRAM_START_ISO = '2026-09-07';
-const PLAN_VERSION = 'xc-fall-2026-w1-10';
+const PLAN_VERSION = 'xc-fall-2026-w1-10b';
 const WEEK_TEMPLATE = [
   { day:'Mon', type:'Easy', km:13, strides:true, core:false, strength:'A' },
   { day:'Tue', type:'Easy', km:11, strides:true, core:true,  strength:null },
@@ -341,8 +341,16 @@ class App extends React.Component {
       if (Array.isArray(saved.races)) {
         saved.races = saved.races.map(r => r.id === 4
           ? { ...r, label:'Hamilton Invitational', location:'Christie Lake Conservation Area \u00b7 Dundas, ON', tag:'OUA & U SPORTS Selection' }
-          : r.id === 5 ? { ...r, isGoal:false } : r.id === 6 ? { ...r, isGoal:true } : r);
+          : r);
+      } else {
+        saved.races = INITIAL_RACES;
       }
+      // Goal race = U SPORTS Championship (add it if this device's list doesn't have it)
+      const isUSports = r => /u\s*sports\s*champ/i.test(r.label || '');
+      if (!saved.races.some(isUSports)) {
+        saved.races = [...saved.races, { ...INITIAL_RACES.find(isUSports), id: Date.now() }];
+      }
+      saved.races = saved.races.map(r => ({ ...r, isGoal: isUSports(r) }));
       saved.planVersion = PLAN_VERSION;
     }
     if (saved.weight && saved.weight.some(w => typeof w.lb !== 'number')) {
@@ -800,7 +808,9 @@ class App extends React.Component {
     });
 
     const sortedRaces = [...S.races].sort((a,b)=>a.iso.localeCompare(b.iso));
-    const goalRace = S.races.find(r=>r.isGoal) || sortedRaces[sortedRaces.length-1] || { label:'Set a goal race', iso: isoDate(addDays(new Date(),90)) };
+    const todayIsoStr = isoDate(new Date());
+    const upcoming = sortedRaces.filter(r=>r.iso>=todayIsoStr);
+    const goalRace = upcoming.find(r=>r.isGoal) || upcoming[0] || S.races.find(r=>r.isGoal) || sortedRaces[sortedRaces.length-1] || { label:'Set a goal race', iso: isoDate(addDays(new Date(),90)) };
     const raceDate = new Date(goalRace.iso + 'T00:00:00');
     const days = Math.max(0, Math.ceil((raceDate - new Date()) / 86400000));
     const race = { name: goalRace.label, date: raceDate.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' }), days };
