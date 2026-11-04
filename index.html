@@ -33,7 +33,7 @@ input,select{font-family:inherit}
 const STORAGE_KEY = 'xc-training-dashboard-v1';
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const PROGRAM_START_ISO = '2026-09-07';
-const PLAN_VERSION = 'xc-fall-2026-w1-8';
+const PLAN_VERSION = 'xc-fall-2026-w1-10';
 const WEEK_TEMPLATE = [
   { day:'Mon', type:'Easy', km:13, strides:true, core:false, strength:'A' },
   { day:'Tue', type:'Easy', km:11, strides:true, core:true,  strength:null },
@@ -117,6 +117,24 @@ const WEEKLY_TEMPLATES = {
     { day:'Sat', type:'Workout', km:8,  strides:true,  core:false, strength:null },
     { day:'Sun', type:'Rest',    km:0,  strides:false, core:false, strength:null },
   ],
+  9: [
+    { day:'Mon', type:'Easy',    km:12, strides:true,  core:false, strength:'A' },
+    { day:'Tue', type:'Workout', km:14, strides:true,  core:false, strength:null },
+    { day:'Wed', type:'Easy',    km:12, strides:true,  core:false, strength:'B' },
+    { day:'Thu', type:'Rest',    km:0,  strides:false, core:false, strength:null },
+    { day:'Fri', type:'Workout', km:14, strides:true,  core:false, strength:null },
+    { day:'Sat', type:'Long',    km:14, strides:true,  core:true,  strength:null },
+    { day:'Sun', type:'Easy',    km:12, strides:true,  core:false, strength:null },
+  ],
+  10: [
+    { day:'Mon', type:'Workout', km:12, strides:true,  core:false, strength:'A' },
+    { day:'Tue', type:'Easy',    km:12, strides:true,  core:true,  strength:null },
+    { day:'Wed', type:'Workout', km:11, strides:true,  core:false, strength:'B' },
+    { day:'Thu', type:'Rest',    km:0,  strides:false, core:false, strength:null },
+    { day:'Fri', type:'Easy',    km:6,  strides:true,  core:false, strength:null },
+    { day:'Sat', type:'Workout', km:8,  strides:false, core:false, strength:null },
+    { day:'Sun', type:'Rest',    km:0,  strides:false, core:false, strength:null },
+  ],
 };
 const PRESC = { Easy:'50–70 min easy', Long:'70–80 min long', Rest:'Rest from running', Workout:'Quality workout', 'Cross train':'Cross-training' };
 
@@ -148,7 +166,7 @@ function addDays(d, n) {
 function weekNumberFor(monday, startIso) {
   const start = mondayOf(new Date((startIso || PROGRAM_START_ISO) + 'T00:00:00'));
   const diffDays = Math.round((monday - start) / 86400000);
-  return Math.max(1, Math.min(8, Math.floor(diffDays / 7) + 1));
+  return Math.max(1, Math.min(10, Math.floor(diffDays / 7) + 1));
 }
 function generateWeek(monday, todayIso, weekNum) {
   const template = (weekNum && WEEKLY_TEMPLATES[weekNum]) || WEEK_TEMPLATE;
@@ -201,8 +219,8 @@ const INITIAL_RACES = [
   { id:2, iso:'2026-09-26', sub:'vs', label:'Vigars & Salter Western International', location:'London, ON · Thames Valley Golf Club', tag:'OUA', isGoal:false },
   { id:3, iso:'2026-10-02', sub:'at', label:'Joe Piane – Notre Dame Invitational', location:'South Bend, Ind.', tag:'OUA', isGoal:false },
   { id:4, iso:'2026-10-16', sub:'at', label:'Hamilton Invitational', location:'Christie Lake Conservation Area · Dundas, ON', tag:'OUA & U SPORTS Selection', isGoal:false },
-  { id:5, iso:'2026-10-31', sub:null, label:'OUA Championship', location:'Malden Park · Windsor, ON', tag:'OUA Championship', isGoal:true },
-  { id:6, iso:'2026-11-14', sub:null, label:'U SPORTS Championship', location:'Christie Lake Conservation Area · Dundas, ON', tag:'U SPORTS', isGoal:false },
+  { id:5, iso:'2026-10-31', sub:null, label:'OUA Championship', location:'Malden Park · Windsor, ON', tag:'OUA Championship', isGoal:false },
+  { id:6, iso:'2026-11-14', sub:null, label:'U SPORTS Championship', location:'Christie Lake Conservation Area · Dundas, ON', tag:'U SPORTS', isGoal:true },
 ];
 
 const ACTIVATION_ROUTINE = [
@@ -283,6 +301,14 @@ const defaultState = {
       {id:'0', day:'Mon', name:'Aerobic Power', presc:'8–9 × 2 min / 1 min jog', pace:'3:40–4:05/km'},
       {id:'1', day:'Wed', name:'Threshold / Tempo', presc:'2–3 × 5 min / 1 min jog', pace:'3:50–4:15/km'},
       {id:'2', day:'Sat', name:'OUA Championships', presc:'Race — 8 km at Malden Park, Windsor (Peak #1)', pace:'Full effort'} ] },
+    9: { phase:'Confidence-Maintain', note:'Post-OUA confidence week — threshold ladder Tuesday at the soccer fields, cut-down 1k’s Friday on the Western outdoor track, short long run Saturday (if racing U SPORTS). Wed easy is with the team at WAS 4:30pm + mobility. Thu rest. Drills + strides before each workout, 4–6 × 100 m after.', long:'Short long run + core (Sat) if racing U SPORTS · if not: 75–90 min', key:[
+      {id:'0', day:'Tue', name:'Threshold / Tempo', presc:'12 min / 1:30 jog / 10 min / 1:30 jog / 8 min (FY: last rep 5 min)', pace:'3:50–4:05/km (G1) · 4:05–4:15/km (G2)'},
+      {id:'1', day:'Fri', name:'Aerobic Power — Cut-down 1k’s', presc:'8 × 1 km cut-down / 2 min rest, then 5 min rest + 4–6 × 30 sec / 1 min rest', pace:'Start 3:50/km (G1) or 4:00/km (G2), cut 3 s/km each rep · 30s @ 800–1500 m pace'},
+      {id:'2', day:'Sat', name:'Long Run', presc:'Short long run if racing U SPORTS (otherwise 75–90 min) + 4–6 × 100 m strides + core', pace:'Easy'} ] },
+    10: { phase:'U SPORTS Tune Up', note:'U SPORTS Championship week — championship sharpening Monday, light threshold Wednesday, Tue easy at WAS 4:30pm + drills, mobility & core. Thu rest, race warm-up Friday, race 8K Saturday at Christie Lake, Dundas (Peak #2). Sun rest. If not racing U SPORTS: same Mon session, 5–6 × 5 min Wed, easy 55–70 min Fri.', long:'No long run — Saturday’s 8K is the effort', key:[
+      {id:'0', day:'Mon', name:'Aerobic Power — Championship Sharpening', presc:'4 × (3 min / 2 min jog / 1 min / 1 min jog / 1 min), 3 min rest between sets', pace:'3:30–3:45/km (G1) · 3:45–3:55/km (G2)'},
+      {id:'1', day:'Wed', name:'Threshold / Tempo', presc:'2–3 × 5 min / 1 min jog', pace:'3:50–4:05/km (G1) · 4:05–4:15/km (G2)'},
+      {id:'2', day:'Sat', name:'U SPORTS Championships', presc:'Race — 8 km at Christie Lake Conservation Area, Dundas (Peak #2)', pace:'Full effort'} ] },
   },
   recovery: { readiness:82, sleep:7.8, soreness:'Low', shin:'clear' },
   checkinLog: [],
@@ -315,7 +341,7 @@ class App extends React.Component {
       if (Array.isArray(saved.races)) {
         saved.races = saved.races.map(r => r.id === 4
           ? { ...r, label:'Hamilton Invitational', location:'Christie Lake Conservation Area \u00b7 Dundas, ON', tag:'OUA & U SPORTS Selection' }
-          : r);
+          : r.id === 5 ? { ...r, isGoal:false } : r.id === 6 ? { ...r, isGoal:true } : r);
       }
       saved.planVersion = PLAN_VERSION;
     }
@@ -779,12 +805,12 @@ class App extends React.Component {
     const days = Math.max(0, Math.ceil((raceDate - new Date()) / 86400000));
     const race = { name: goalRace.label, date: raceDate.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' }), days };
 
-    const phaseColors = { Transition:CLAY, Build:BLUE, Adaptation:AMBER, Camp:GREEN, 'Race & Maintain':CLAY, 'Peak threshold':BLUE, TBD:MUTE };
+    const phaseColors = { Transition:CLAY, Build:BLUE, Adaptation:AMBER, Camp:GREEN, 'Race & Maintain':CLAY, 'Peak threshold':BLUE, Sharpen:BLUE, 'OUA Tune Up':CLAY, 'Confidence-Maintain':GREEN, 'U SPORTS Tune Up':CLAY, TBD:MUTE };
     const programMonday = mondayOf(new Date(S.programStart + 'T00:00:00'));
     const curWeekNum = weekNumberFor(mondayOf(new Date()), S.programStart);
     const phaseNow = { w: curWeekNum, phase: S.workouts[curWeekNum].phase };
     const sel = S.selectedWeek;
-    const phases = Array.from({length:8}, (_,i) => i+1).map(w => {
+    const phases = Array.from({length:10}, (_,i) => i+1).map(w => {
       const short = shortDate(addDays(programMonday, (w-1)*7)).replace(' ','');
       const phase = S.workouts[w].phase;
       const cur = w===phaseNow.w, selected = w===sel;
@@ -1221,7 +1247,7 @@ class App extends React.Component {
             {v.showDesktopHeader && (
               <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',marginBottom:26,gap:16,flexWrap:'wrap'}}>
                 <div>
-                  <div style={{fontSize:13,color:'#7C7591',fontWeight:600}}>{v.todayStr} · Week {v.phaseNow.w} of 8 · {v.phaseNow.phase}</div>
+                  <div style={{fontSize:13,color:'#7C7591',fontWeight:600}}>{v.todayStr} · Week {v.phaseNow.w} of 10 · {v.phaseNow.phase}</div>
                   <h1 style={{margin:'5px 0 0',fontFamily:"'Bricolage Grotesque'",fontSize:34,fontWeight:800,letterSpacing:'-.025em',lineHeight:1}}>{v.headline}</h1>
                 </div>
                 <button onClick={v.openPrimary} style={{background:'#4B2E83',color:'#fff',fontWeight:600,fontSize:14,padding:'12px 19px',borderRadius:13,boxShadow:'0 8px 18px -8px rgba(75,46,131,.45)',whiteSpace:'nowrap',flex:'none'}}>{v.primaryLabel}</button>
@@ -1334,7 +1360,7 @@ class App extends React.Component {
                 <div style={{gridColumn:'1/-1',background:'#FFFFFF',border:'1px solid #E4DEF0',borderRadius:22,padding:24,boxShadow:'0 1px 2px rgba(36,26,56,.04), 0 10px 26px -18px rgba(36,26,56,.20)'}}>
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16,flexWrap:'wrap',gap:8}}>
                     <div style={{display:'flex',alignItems:'center',gap:8}}>
-                      <div style={{fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:17}}>The 8-week arc</div>
+                      <div style={{fontFamily:"'Bricolage Grotesque'",fontWeight:700,fontSize:17}}>The 10-week arc</div>
                       <button onClick={v.openProgramSettings} title="Edit program start date" style={{color:'#7C7591',fontSize:13}}>✎</button>
                     </div>
                     <div style={{fontSize:13,color:'#5B5470'}}>You're in <span style={{color:'#c1663f',fontWeight:700}}>Week {v.phaseNow.w} · {v.phaseNow.phase}</span> — quality work starts Week 3.</div>
